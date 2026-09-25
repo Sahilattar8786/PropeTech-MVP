@@ -33,7 +33,6 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@rolldown/binding-darwin-arm64": "^1.2.11",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^24.13.6",
     "@types/react": "^19",
