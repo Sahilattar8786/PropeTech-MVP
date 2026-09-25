@@ -285,6 +285,10 @@ export async function getDashboardStats(ctx: TenantContext) {
     Property.find({ tenantId, status: { $ne: "draft" } }).sort({ views: -1 }).limit(5).lean<IProperty[]>(),
     Property.find({ tenantId, status: "draft" }).sort({ updatedAt: -1 }).limit(4).lean<IProperty[]>(),
   ]);
+  const leadCounts = await Lead.aggregate<{ _id: unknown; count: number }>([
+    { $match: { tenantId: new ObjectId(tenantId), propertyId: { $in: recent.map((p) => p._id) } } },
+    { $group: { _id: "$propertyId", count: { $sum: 1 } } },
+  ]);
   const count = (s: PropertyStatus) => byStatus.find((b) => b._id === s)?.count ?? 0;
   const total = byStatus.reduce((sum, b) => sum + b.count, 0);
   return {
@@ -296,6 +300,7 @@ export async function getDashboardStats(ctx: TenantContext) {
     whatsappClicks: totals[0]?.clicks ?? 0,
     leads,
     topProperties: recent.map(toPropertyDTO),
+    leadCounts: Object.fromEntries(leadCounts.map((l) => [String(l._id), l.count])) as Record<string, number>,
     recentDrafts: drafts.map(toPropertyDTO),
   };
 }

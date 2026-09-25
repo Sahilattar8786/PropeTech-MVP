@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { signIn, signOut, updateSession, auth } from "@/auth";
-import { loginSchema, onboardingSchema, registerSchema, type LoginInput, type OnboardingInput, type RegisterInput } from "@/lib/validation/auth";
+import { loginSchema, onboardingSchema, passwordRule, registerSchema, type LoginInput, type OnboardingInput, type RegisterInput } from "@/lib/validation/auth";
 import { AppError, runAction, type ActionResult } from "@/server/lib/errors";
 import { clientIp, enforceRateLimit, RATE_LIMITS } from "@/server/lib/rate-limit";
 import { completeOnboarding, registerBroker } from "@/server/services/tenants/registration.service";
@@ -76,7 +76,7 @@ export async function forgotPasswordAction(input: { email: string }): Promise<Ac
 const resetSchema = z
   .object({
     token: z.string().min(10),
-    password: registerSchema.innerType().shape.password,
+    password: passwordRule,
     confirmPassword: z.string(),
   })
   .refine((d) => d.password === d.confirmPassword, { path: ["confirmPassword"], message: "Passwords don't match" });

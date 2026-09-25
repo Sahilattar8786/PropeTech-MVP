@@ -7,7 +7,7 @@ export const loginSchema = z.object({
 });
 export type LoginInput = z.infer<typeof loginSchema>;
 
-const passwordRule = z
+export const passwordRule = z
   .string()
   .min(8, "Use at least 8 characters")
   .max(72, "Use at most 72 characters")
