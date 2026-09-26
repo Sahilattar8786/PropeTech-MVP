@@ -5,6 +5,7 @@ import type { DomainInput } from "@/lib/validation/settings";
 import type { TenantContext } from "@/server/auth/context";
 import { assertCan } from "@/server/auth/rbac";
 import { connectDB } from "@/server/db/connect";
+import { env } from "@/server/lib/env";
 import { AppError, notFound } from "@/server/lib/errors";
 import { Broker, Domain, isObjectId, type IBroker, type IDomain } from "@/server/models";
 import { audit } from "@/server/services/audit/audit.service";
@@ -22,13 +23,13 @@ export interface DomainDTO {
 const TXT_PREFIX = "_propflow";
 
 function toDTO(doc: IDomain): DomainDTO {
-  const root = getRootDomain() ?? "propflow.in";
   return {
     id: String(doc._id),
     hostname: doc.hostname,
     status: doc.status,
     verificationRecord: { type: "TXT", name: `${TXT_PREFIX}.${doc.hostname}`, value: `propflow-verify=${doc.verificationToken}` },
-    routingRecord: { type: "CNAME", name: doc.hostname, value: `sites.${root}` },
+    // Where the broker points their domain: the hosting provider's CNAME target (Vercel by default).
+    routingRecord: { type: "CNAME", name: doc.hostname, value: env().CUSTOM_DOMAIN_CNAME_TARGET },
     verifiedAt: doc.verifiedAt?.toISOString(),
   };
 }
