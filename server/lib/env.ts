@@ -49,7 +49,9 @@ let cached: ServerEnv | null = null;
 
 export function env(): ServerEnv {
   if (cached) return cached;
-  const parsed = serverEnvSchema.safeParse(process.env);
+  // Hosting dashboards often keep variables with empty values; treat "" as not set.
+  const defined = Object.fromEntries(Object.entries(process.env).filter(([, value]) => value !== undefined && value.trim() !== ""));
+  const parsed = serverEnvSchema.safeParse(defined);
   if (!parsed.success) {
     const issues = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
     throw new Error(`Invalid environment configuration: ${issues}`);

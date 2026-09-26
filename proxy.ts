@@ -7,7 +7,7 @@ import { NextResponse, type NextRequest } from "next/server";
  *    Real authorization happens server-side in layouts, actions and services.
  */
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/+$/, "");
 const APP_HOST = new URL(APP_URL).host.toLowerCase();
 const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN?.trim().toLowerCase() || null;
 const RESERVED_SUBDOMAINS = new Set(["www", "app", "api", "admin", "dashboard", "mail", "sites", "static", "assets"]);

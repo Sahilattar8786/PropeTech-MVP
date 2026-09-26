@@ -47,7 +47,14 @@ Do the steps in order. Each ends with a check.
 ## 5. Vercel (web app)
 1. **Plan:** Vercel **Pro**. Hobby doesn't allow commercial use.
 2. **Project → Settings → Functions → Region** → *Mumbai, India (bom1)*, close to your Atlas region.
-3. **Settings → Environment Variables** (Production) → add everything marked *Vercel* in the [table below](#environment-variables). Generate new secrets for production; don't reuse your laptop's.
+3. **Environment variables.** They're stored in the Vercel project and apply to every deploy automatically; you only set them again for a new project or when a value changes. Push them all with one command:
+   ```bash
+   cp .env.example .env.production   # fill in production values (gitignored, never commit it)
+   npx vercel link                   # once: pick this Vercel project
+   npm run env:push -- --dry-run     # preview
+   npm run env:push                  # add --railway to also update the worker
+   ```
+   The script refuses localhost URLs and sandbox or test settings. Generate new secrets for production; don't reuse your laptop's. You can also paste the whole file into **Settings → Environment Variables** (Vercel imports all lines at once).
 4. **Settings → Domains → Add** `yourdomain.com` and `www.yourdomain.com` (set `www` to redirect to the apex). Vercel shows the DNS records. In **Cloudflare → DNS** create them exactly, typically:
    - `A` `@` → `76.76.21.21`
    - `CNAME` `www` → `cname.vercel-dns.com`

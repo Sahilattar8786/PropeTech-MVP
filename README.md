@@ -39,6 +39,7 @@ Without extra credentials the app runs fully locally:
 | `npm run dev` / `build` / `start` | Next.js |
 | `npm run worker` | BullMQ workers for all queues (needs `REDIS_URL`) |
 | `npm run seed` | Demo broker, properties and a collection via the real services |
+| `npm run env:push` | Push `.env.production` to Vercel (and `--railway` for the worker) in one go |
 | `npm test` | Vitest: AI extraction & grounding, WhatsApp link, webhook security, lifecycle, tenant isolation (needs local MongoDB) |
 | `npm run typecheck` / `lint` | TypeScript / ESLint |
 
