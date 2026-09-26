@@ -14,7 +14,8 @@ const CONTENT_TYPES: Record<string, string> = {
 
 /** Filesystem driver for local development. Files are served by app/media/[...key]/route.ts. */
 export class LocalDriver implements StorageDriver {
-  private root = path.resolve(process.cwd(), env().STORAGE_LOCAL_DIR);
+  // Runtime-configured directory: excluded from build-time file tracing.
+  private root = path.resolve(/*turbopackIgnore: true*/ process.cwd(), env().STORAGE_LOCAL_DIR);
 
   private resolve(key: string) {
     const full = path.resolve(this.root, key);

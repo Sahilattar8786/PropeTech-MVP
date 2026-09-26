@@ -62,20 +62,42 @@ export function ImageUploader({ value, onChange, disabled }: { value: string[]; 
       }));
       setPending((prev) => [...prev, ...queue.map((q) => q.item)]);
 
-      const work = queue.filter((q) => !q.item.error);
+      // Upload in parallel, but commit results in the order the broker selected them
+      // so the first chosen photo becomes the cover.
+      const work = queue.filter((q) => !q.item.error).map((q, index) => ({ ...q, index }));
+      const results: (string | null | undefined)[] = new Array(work.length);
+      let committed = 0;
+      const flush = () => {
+        const ready: string[] = [];
+        const doneIds: string[] = [];
+        while (committed < results.length && results[committed] !== undefined) {
+          const url = results[committed];
+          if (url) {
+            ready.push(url);
+            doneIds.push(work[committed]!.item.id);
+            URL.revokeObjectURL(work[committed]!.item.preview);
+          }
+          committed++;
+        }
+        if (ready.length) {
+          const updated = [...valueRef.current, ...ready];
+          valueRef.current = updated;
+          onChange(updated);
+          setPending((prev) => prev.filter((p) => !doneIds.includes(p.id)));
+        }
+      };
+      const remaining = [...work];
       const run = async () => {
-        for (let next = work.shift(); next; next = work.shift()) {
-          const { file, item } = next;
+        for (let next = remaining.shift(); next; next = remaining.shift()) {
+          const { file, item, index } = next;
           try {
             const { url } = await uploadFile(file, (progress) => setPending((prev) => prev.map((p) => (p.id === item.id ? { ...p, progress } : p))));
-            const updated = [...valueRef.current, url];
-            valueRef.current = updated;
-            onChange(updated);
-            setPending((prev) => prev.filter((p) => p.id !== item.id));
-            URL.revokeObjectURL(item.preview);
+            results[index] = url;
           } catch (error) {
+            results[index] = null;
             setPending((prev) => prev.map((p) => (p.id === item.id ? { ...p, error: error instanceof Error ? error.message : "Upload failed" } : p)));
           }
+          flush();
         }
       };
       await Promise.all(Array.from({ length: CONCURRENCY }, run));

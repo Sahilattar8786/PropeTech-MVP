@@ -1,7 +1,7 @@
 type Level = "debug" | "info" | "warn" | "error";
 
 function serialize(meta: unknown) {
-  if (meta instanceof Error) return { name: meta.name, message: meta.message, stack: meta.stack };
+  if (meta instanceof Error) return `${meta.name}: ${meta.message}${meta.stack ? `\n${meta.stack.split("\n").slice(1, 4).join("\n")}` : ""}`;
   return meta;
 }
 

@@ -58,6 +58,14 @@ export async function listProperties(ctx: TenantContext, filters: PropertyFilter
   return { items: items.map(toPropertyDTO), total, page: filters.page, pageSize: PAGE_SIZE };
 }
 
+/** Published inventory for pickers (collections). */
+export async function listPublishedInventory(ctx: TenantContext, limit = 200): Promise<PropertyDTO[]> {
+  assertCan(ctx, "property:read");
+  await connectDB();
+  const docs = await Property.find({ tenantId: ctx.tenantId, status: { $ne: "draft" } }).sort({ updatedAt: -1 }).limit(limit).lean<IProperty[]>();
+  return docs.map(toPropertyDTO);
+}
+
 export async function getProperty(ctx: TenantContext, id: string): Promise<PropertyDTO> {
   assertCan(ctx, "property:read");
   return toPropertyDTO(await findOwned(ctx, id));

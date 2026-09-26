@@ -4,7 +4,7 @@ import { PLANS } from "@/lib/config/plans";
 import { brokerBaseUrl, brokerDisplayHost } from "@/lib/urls";
 import { requireTenantContext } from "@/server/auth/session";
 import { getNotifications } from "@/server/services/notifications/inbox-notifications.service";
-import { getSubscription } from "@/server/services/subscriptions/subscription.service";
+import { getSubscription, trialDaysLeft } from "@/server/services/subscriptions/subscription.service";
 import { getBrokerForTenant } from "@/server/services/tenants/broker.service";
 import { getSession } from "@/server/auth/session";
 
@@ -18,13 +18,12 @@ export default async function DashboardLayout({ children }: LayoutProps<"/dashbo
     getSubscription(ctx.tenantId),
     getNotifications(ctx),
   ]);
-  const trialDaysLeft = subscription.status === "trialing" && subscription.trialEndsAt ? Math.max(0, Math.ceil((new Date(subscription.trialEndsAt).getTime() - Date.now()) / 86_400_000)) : null;
 
   return (
     <DashboardShell
       user={{ name: ctx.name, email: ctx.email, image: session?.user?.image }}
       broker={{ businessName: broker.businessName, slug: broker.slug, logoUrl: broker.logoUrl, publicUrl: brokerBaseUrl(broker), displayHost: brokerDisplayHost(broker) }}
-      plan={{ name: PLANS[subscription.plan].name, trialDaysLeft }}
+      plan={{ name: PLANS[subscription.plan].name, trialDaysLeft: trialDaysLeft(subscription) }}
       notifications={notifications}
     >
       {children}

@@ -27,7 +27,8 @@ export interface IMedia {
 const mediaSchema = new Schema<IMedia>(
   {
     key: { type: String, required: true },
-    url: { type: String, required: true },
+    // Empty until a private original has been processed into a public image.
+    url: { type: String, default: "" },
     mimeType: { type: String, required: true },
     size: { type: Number, required: true },
     width: Number,

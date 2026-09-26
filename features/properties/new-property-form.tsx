@@ -22,20 +22,23 @@ const STEPS = ["Reading your message", "Extracting property details", "Checking 
 export function NewPropertyForm() {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
-  const [step, setStep] = useState(0);
+  const [progress, setStep] = useState(0);
   const [manualPending, startManual] = useTransition();
   const form = useForm<CreateFromTextInput>({ resolver: zodResolver(createFromTextSchema), defaultValues: { text: "", images: [] } });
   const { errors, isSubmitting, isSubmitSuccessful } = form.formState;
   const working = isSubmitting || (isSubmitSuccessful && !serverError);
 
+  const step = working ? progress : 0;
+
   useEffect(() => {
-    if (!working) return setStep(0);
+    if (!working) return;
     const timer = setInterval(() => setStep((s) => Math.min(STEPS.length - 1, s + 1)), 900);
     return () => clearInterval(timer);
   }, [working]);
 
   const onSubmit = form.handleSubmit(async (values) => {
     setServerError(null);
+    setStep(0);
     const result = await createFromTextAction(values);
     if (!result.ok) return setServerError(result.error);
     if (result.data.failed) toast.warning("We couldn't automatically process this property — review it manually.");
@@ -50,7 +53,7 @@ export function NewPropertyForm() {
     });
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px]">
       <form onSubmit={onSubmit} noValidate className="space-y-6 rounded-2xl border bg-card p-5 shadow-soft sm:p-6">
         <div>
           <h2 className="flex items-center gap-2 font-semibold">

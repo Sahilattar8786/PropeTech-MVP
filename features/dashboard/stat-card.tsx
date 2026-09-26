@@ -1,7 +1,6 @@
-import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function StatCard({ label, value, icon: Icon, hint, className }: { label: string; value: string; icon: LucideIcon; hint?: string; className?: string }) {
+export function StatCard({ label, value, icon: Icon, hint, className }: { label: string; value: string; icon: React.ComponentType<{ className?: string }>; hint?: string; className?: string }) {
   return (
     <div className={cn("rounded-2xl border bg-card p-4 shadow-soft sm:p-5", className)}>
       <div className="flex items-center justify-between gap-2">

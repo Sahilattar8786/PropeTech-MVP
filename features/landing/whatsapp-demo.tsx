@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Check, Loader2, MapPin, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PropertyIllustration } from "@/components/shared/property-illustration";
@@ -13,29 +13,34 @@ import { processingSteps, sampleListing } from "./content";
  */
 const TOTAL = processingSteps.length + 2; // message + steps + draft
 
+const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
+function subscribeReducedMotion(onChange: () => void) {
+  const query = window.matchMedia(REDUCED_MOTION);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
 export function WhatsAppDemo() {
   const ref = useRef<HTMLDivElement>(null);
-  const [step, setStep] = useState(0);
+  const [animatedStep, setStep] = useState(0);
   const [visible, setVisible] = useState(false);
+  const reducedMotion = useSyncExternalStore(subscribeReducedMotion, () => window.matchMedia(REDUCED_MOTION).matches, () => false);
+  const step = reducedMotion ? TOTAL : animatedStep;
 
   useEffect(() => {
     const el = ref.current;
-    if (!el) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setStep(TOTAL);
-      return;
-    }
+    if (!el || reducedMotion) return;
     const observer = new IntersectionObserver(([entry]) => setVisible(Boolean(entry?.isIntersecting)), { threshold: 0.35 });
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [reducedMotion]);
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible || reducedMotion) return;
     const delay = step === 0 ? 700 : step >= TOTAL ? 5000 : 650;
     const timer = setTimeout(() => setStep((s) => (s >= TOTAL ? 0 : s + 1)), delay);
     return () => clearTimeout(timer);
-  }, [visible, step]);
+  }, [visible, step, reducedMotion]);
 
   const doneSteps = Math.max(0, Math.min(processingSteps.length, step - 1));
   const draftReady = step >= TOTAL;

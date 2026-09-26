@@ -5,9 +5,16 @@ export function tenantScoped(schema: Schema, opts: { index?: boolean } = {}) {
   schema.add({ tenantId: { type: Schema.Types.ObjectId, ref: "Tenant", required: true, index: opts.index ?? true } });
 }
 
-/** Avoids "OverwriteModelError" when modules are re-evaluated during hot reload. */
+/**
+ * Avoids "OverwriteModelError" when modules are re-evaluated during hot reload.
+ * In development the model is re-registered so schema edits apply without a restart.
+ */
 export function defineModel<T>(name: string, schema: Schema<T>): Model<T> {
-  return (mongoose.models[name] as Model<T> | undefined) ?? mongoose.model<T>(name, schema);
+  if (mongoose.models[name]) {
+    if (process.env.NODE_ENV === "production") return mongoose.models[name] as Model<T>;
+    mongoose.deleteModel(name);
+  }
+  return mongoose.model<T>(name, schema);
 }
 
 export type ObjectId = mongoose.Types.ObjectId;

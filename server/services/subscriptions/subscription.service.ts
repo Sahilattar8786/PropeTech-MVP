@@ -41,6 +41,12 @@ export async function getSubscription(tenantId: string): Promise<SubscriptionDTO
   };
 }
 
+/** Whole days left in a trial, or null when not trialing. */
+export function trialDaysLeft(sub: Pick<SubscriptionDTO, "status" | "trialEndsAt">): number | null {
+  if (sub.status !== "trialing" || !sub.trialEndsAt) return null;
+  return Math.max(0, Math.ceil((new Date(sub.trialEndsAt).getTime() - Date.now()) / 86_400_000));
+}
+
 export async function getEntitlements(tenantId: string): Promise<Entitlements> {
   const sub = await getSubscription(tenantId);
   return PLANS[sub.plan].entitlements;

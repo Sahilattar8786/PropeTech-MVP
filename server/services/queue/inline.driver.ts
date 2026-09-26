@@ -4,9 +4,12 @@ import type { QueueDriver } from "./queue";
 
 const BACKOFF_MS = 2000;
 
+// De-duplication state survives hot reloads; the driver code itself does not need to.
+const globalForInline = globalThis as unknown as { __inlinePendingJobs?: Set<string> };
+
 /** Development-only driver: runs jobs in this process on a timer, with retries and de-duplication. */
 export class InlineDriver implements QueueDriver {
-  private pending = new Set<string>();
+  private pending = (globalForInline.__inlinePendingJobs ??= new Set<string>());
 
   async enqueue<Q extends QueueName>(queue: Q, payload: JobPayloads[Q], opts: EnqueueOptions & { attempts: number }) {
     const key = opts.jobId ? `${queue}:${opts.jobId}` : null;

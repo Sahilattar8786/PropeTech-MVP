@@ -29,14 +29,14 @@ export function StatusBadge({ status, className }: { status: PropertyStatus; cla
   );
 }
 
-export function AIBadge({ confidence, className }: { confidence?: number; className?: string }) {
+export function AIBadge({ confidence, className, compact = false }: { confidence?: number; className?: string; compact?: boolean }) {
   return (
     <span
-      className={cn("inline-flex items-center gap-1 rounded-full bg-brand-soft px-1.5 py-0.5 text-[11px] font-medium text-brand ring-1 ring-brand/15 ring-inset", className)}
-      title={confidence !== undefined ? `AI confidence ${Math.round(confidence * 100)}%` : undefined}
+      className={cn("inline-flex shrink-0 items-center gap-1 rounded-full bg-brand-soft px-1.5 py-0.5 text-[11px] font-medium whitespace-nowrap text-brand ring-1 ring-brand/15 ring-inset", className)}
+      title={`AI Generated${confidence !== undefined ? ` · ${Math.round(confidence * 100)}% confidence` : ""}`}
     >
       <Sparkles className="size-3" aria-hidden />
-      AI Generated
+      {compact ? <span aria-label="AI Generated">AI</span> : "AI Generated"}
     </span>
   );
 }

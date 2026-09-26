@@ -106,27 +106,29 @@ async function handleInboundMessage(message: InboundMessage, businessNumber: str
   const text = message.text?.body ?? message.image?.caption ?? message.video?.caption ?? message.document?.caption;
   const broker = await findBrokerBySender(from);
 
-  if (!broker) {
-    await handleUnknownSender(from, text);
-    return "ignored" as const;
-  }
-  return storeTenantMessage(broker, message, { from, businessNumber, contactName, text });
+  if (broker) return storeTenantMessage(broker, message, { from, businessNumber, contactName, text });
+
+  // Unknown number: the only thing it may do is redeem a connect code.
+  const connected = await tryConnect(from, text);
+  if (!connected) return "ignored" as const;
+  return storeTenantMessage(connected, message, { from, businessNumber, contactName, text });
 }
 
-async function handleUnknownSender(from: string, text?: string) {
+async function tryConnect(from: string, text?: string): Promise<IBroker | null> {
   const code = text ? CONNECT_PATTERN.exec(text)?.[1] : undefined;
-  if (code) {
-    try {
-      const broker = await redeemConnectCode(code, from);
-      if (broker) return sendDirect(from, connectedMessage(broker.businessName));
-      return sendDirect(from, { type: "text", body: "That connect code is invalid or has expired. Open Settings → WhatsApp in your dashboard for a fresh code." });
-    } catch (error) {
-      const message = error instanceof AppError ? error.message : "We couldn't connect this number.";
-      return sendDirect(from, { type: "text", body: message });
-    }
+  if (!code) {
+    // Don't store messages from numbers without a tenant; reply at most once an hour.
+    if (checkRateLimit(`wa-unknown:${from}`, { limit: 1, windowMs: 60 * 60_000 }).ok) await sendDirect(from, unknownSenderMessage());
+    return null;
   }
-  // Don't store messages from numbers without a tenant; reply at most once an hour.
-  if (checkRateLimit(`wa-unknown:${from}`, { limit: 1, windowMs: 60 * 60_000 }).ok) await sendDirect(from, unknownSenderMessage());
+  try {
+    const broker = await redeemConnectCode(code, from);
+    if (!broker) await sendDirect(from, { type: "text", body: "That connect code is invalid or has expired. Open Settings → WhatsApp in your dashboard for a fresh code." });
+    return broker;
+  } catch (error) {
+    await sendDirect(from, { type: "text", body: error instanceof AppError ? error.message : "We couldn't connect this number." });
+    return null;
+  }
 }
 
 async function storeTenantMessage(
@@ -153,7 +155,8 @@ async function storeTenantMessage(
   );
 
   const isHelp = type === "text" && meta.text !== undefined && HELP_PATTERN.test(meta.text);
-  const processable = (type === "text" || type === "image") && !isHelp;
+  const isConnect = type === "text" && meta.text !== undefined && CONNECT_PATTERN.test(meta.text);
+  const processable = (type === "text" || type === "image") && !isHelp && !isConnect;
 
   try {
     await WhatsAppMessage.create({
@@ -179,7 +182,9 @@ async function storeTenantMessage(
 
   trackEvent("whatsapp_message_received", { tenantId: String(tenantId), properties: { type } });
 
-  if (isHelp) {
+  if (isConnect) {
+    await sendToConversation(String(conversation._id), connectedMessage(broker.businessName));
+  } else if (isHelp) {
     await sendToConversation(String(conversation._id), helpMessage());
   } else if (processable) {
     await scheduleConversationBatch(String(tenantId), String(conversation._id));

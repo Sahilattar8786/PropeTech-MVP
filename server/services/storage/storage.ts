@@ -14,10 +14,10 @@ export interface StorageDriver {
   signedUrl(key: string, expiresInSeconds: number): Promise<string>;
 }
 
-const globalForStorage = globalThis as unknown as { __storage?: Promise<StorageDriver> };
+let driver: Promise<StorageDriver> | undefined;
 
 export function storage(): Promise<StorageDriver> {
-  globalForStorage.__storage ??= (async () => {
+  driver ??= (async () => {
     if (env().STORAGE_DRIVER === "s3") {
       const { S3Driver } = await import("./s3.driver");
       return new S3Driver();
@@ -25,7 +25,7 @@ export function storage(): Promise<StorageDriver> {
     const { LocalDriver } = await import("./local.driver");
     return new LocalDriver();
   })();
-  return globalForStorage.__storage;
+  return driver;
 }
 
 export const isPrivateKey = (key: string) => key.startsWith("private/");

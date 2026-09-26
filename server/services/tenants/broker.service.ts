@@ -1,11 +1,12 @@
 import { cache } from "react";
-import type { BrokerDTO } from "@/lib/domain/broker";
+import { DEFAULT_BRAND_COLOR, type BrokerDTO } from "@/lib/domain/broker";
 import { brokerSlugFromName, isValidBrokerSlug, RESERVED_SLUGS } from "@/lib/slug";
 import type { TenantContext } from "@/server/auth/context";
 import { assertCan } from "@/server/auth/rbac";
 import { connectDB } from "@/server/db/connect";
 import { AppError, notFound } from "@/server/lib/errors";
-import { Broker, type IBroker } from "@/server/models";
+import { Broker, Media, type IBroker } from "@/server/models";
+import { getEntitlements } from "@/server/services/subscriptions/subscription.service";
 import { audit } from "@/server/services/audit/audit.service";
 import type { BrandingInput, ProfileInput } from "@/lib/validation/settings";
 import { normalizePhone } from "@/lib/phone";
@@ -105,9 +106,14 @@ export async function updateBrokerProfile(ctx: TenantContext, input: ProfileInpu
 export async function updateBrokerBranding(ctx: TenantContext, input: BrandingInput): Promise<BrokerDTO> {
   assertCan(ctx, "settings:write");
   await connectDB();
+  const { customBranding } = await getEntitlements(ctx.tenantId);
+  const brandColor = customBranding ? input.brandColor : DEFAULT_BRAND_COLOR;
+  for (const url of [input.logoUrl, input.profileImageUrl]) {
+    if (url && !(await Media.exists({ tenantId: ctx.tenantId, url }))) throw new AppError("FORBIDDEN", "Upload images from your device");
+  }
   const doc = await Broker.findOneAndUpdate(
     { tenantId: ctx.tenantId },
-    { $set: { logoUrl: input.logoUrl || undefined, profileImageUrl: input.profileImageUrl || undefined, brandColor: input.brandColor } },
+    { $set: { logoUrl: input.logoUrl || undefined, profileImageUrl: input.profileImageUrl || undefined, brandColor } },
     { new: true },
   ).lean<IBroker>();
   if (!doc) throw notFound("Broker profile");

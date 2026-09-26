@@ -89,8 +89,8 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
         <StatCard label="WhatsApp Leads" value={formatNumber(stats.leads)} icon={Users} className="col-span-2 lg:col-span-1" />
       </section>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
-        <section className="rounded-2xl border bg-card shadow-soft">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
+        <section className="min-w-0 rounded-2xl border bg-card shadow-soft">
           <div className="flex items-center justify-between px-5 pt-5 pb-3">
             <h2 className="font-semibold">Top properties</h2>
             <Link href="/dashboard/properties" className="text-sm font-medium text-brand hover:underline">

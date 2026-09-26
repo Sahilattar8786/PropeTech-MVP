@@ -11,22 +11,24 @@ export interface QueueDriver {
   enqueue<Q extends QueueName>(queue: Q, payload: JobPayloads[Q], opts: Required<Pick<EnqueueOptions, "attempts">> & EnqueueOptions): Promise<void>;
 }
 
-const globalForQueue = globalThis as unknown as { __queueDriver?: Promise<QueueDriver> };
-
-async function createDriver(): Promise<QueueDriver> {
-  if (process.env.REDIS_URL) {
-    const { BullMQDriver } = await import("./bullmq.driver");
-    logger.info("Queue: using BullMQ driver");
-    return new BullMQDriver(process.env.REDIS_URL);
-  }
-  const { InlineDriver } = await import("./inline.driver");
-  logger.info("Queue: REDIS_URL not set — using in-process driver");
-  return new InlineDriver();
-}
+// BullMQ holds Redis connections, so it is shared process-wide. The inline driver is
+// created per module instance so hot-reloaded processor code is always the code that runs.
+const globalForQueue = globalThis as unknown as { __bullmqDriver?: Promise<QueueDriver> };
+let inlineDriver: Promise<QueueDriver> | undefined;
 
 function driver(): Promise<QueueDriver> {
-  globalForQueue.__queueDriver ??= createDriver();
-  return globalForQueue.__queueDriver;
+  if (process.env.REDIS_URL) {
+    globalForQueue.__bullmqDriver ??= import("./bullmq.driver").then(({ BullMQDriver }) => {
+      logger.info("Queue: using BullMQ driver");
+      return new BullMQDriver(process.env.REDIS_URL!);
+    });
+    return globalForQueue.__bullmqDriver;
+  }
+  inlineDriver ??= import("./inline.driver").then(({ InlineDriver }) => {
+    logger.info("Queue: REDIS_URL not set — using in-process driver");
+    return new InlineDriver();
+  });
+  return inlineDriver;
 }
 
 export async function enqueue<Q extends QueueName>(queue: Q, payload: JobPayloads[Q], opts: EnqueueOptions = {}): Promise<void> {

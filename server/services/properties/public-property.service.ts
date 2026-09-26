@@ -13,9 +13,10 @@ function publicDTO(doc: IProperty): PropertyDTO {
   return { ...dto, ingestion: undefined, aiMetadata: undefined, fieldSources: {}, source: undefined };
 }
 
+/** Shared links keep working after a sale: sold/rented listings render with a status banner. */
 export const getPublicProperty = cache(async (tenantId: string, slug: string): Promise<PropertyDTO | null> => {
   await connectDB();
-  const doc = await Property.findOne({ tenantId, slug: slug.toLowerCase(), ...PUBLIC_FILTER }).lean<IProperty>();
+  const doc = await Property.findOne({ tenantId, slug: slug.toLowerCase(), status: { $in: [...PUBLIC_STATUSES, "sold", "rented"] } }).lean<IProperty>();
   return doc ? publicDTO(doc) : null;
 });
 
