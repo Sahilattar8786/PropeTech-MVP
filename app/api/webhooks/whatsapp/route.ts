@@ -8,8 +8,14 @@ import { handleWebhookPayload, parseWebhookPayload } from "@/server/services/wha
 /** GET — Meta webhook verification handshake (hub.challenge). */
 export async function GET(request: NextRequest) {
   const provider = await getWhatsAppProvider();
-  const challenge = provider.verifyWebhook(request.nextUrl.searchParams);
-  if (!challenge) return new Response("Forbidden", { status: 403 });
+  const params = request.nextUrl.searchParams;
+  const challenge = provider.verifyWebhook(params);
+  if (!challenge) {
+    const reason = params.get("hub.mode") !== "subscribe" ? "hub.mode is not subscribe" : !params.get("hub.challenge") ? "missing hub.challenge" : "verify token does not match WHATSAPP_VERIFY_TOKEN";
+    logger.warn(`WhatsApp webhook verification rejected: ${reason}`);
+    return new Response("Forbidden", { status: 403 });
+  }
+  logger.info("WhatsApp webhook verified");
   return new Response(challenge, { status: 200, headers: { "Content-Type": "text/plain" } });
 }
 

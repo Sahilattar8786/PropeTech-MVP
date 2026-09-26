@@ -12,6 +12,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Dev only: lets the app load through a Cloudflare quick tunnel (needed for WhatsApp webhooks locally).
+  allowedDevOrigins: ["*.trycloudflare.com", "*.ngrok-free.app", "*.ngrok.app"],
   serverExternalPackages: ["mongoose", "sharp", "bullmq", "ioredis"],
   images: {
     remotePatterns,

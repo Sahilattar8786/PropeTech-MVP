@@ -30,11 +30,12 @@ export class S3Driver implements StorageDriver {
   }
 
   async put(key: string, body: Buffer, contentType: string) {
-    const res = await this.client.fetch(this.objectUrl(key), {
-      method: "PUT",
-      body: new Uint8Array(body),
-      headers: { "Content-Type": contentType, "Cache-Control": "public, max-age=31536000, immutable" },
-    });
+    const bytes = new Uint8Array(body);
+    const headers = { "Content-Type": contentType, "Cache-Control": "public, max-age=31536000, immutable" };
+    // Sign, then send the bytes directly. Passing aws4fetch's signed Request object to
+    // Next.js's patched fetch streams the body without Content-Length, which R2 rejects (411).
+    const signed = await this.client.sign(this.objectUrl(key), { method: "PUT", body: bytes, headers });
+    const res = await fetch(signed.url, { method: "PUT", headers: signed.headers, body: bytes, cache: "no-store" });
     if (!res.ok) throw new Error(`S3 upload failed (${res.status})`);
   }
 
