@@ -161,6 +161,7 @@ export interface PropertyDTO {
   fieldSources: Record<string, FieldSource>;
   ingestion?: { stage: IngestionStage; error?: string; rawText?: string; attempts?: number };
   collectionIds: string[];
+  reel?: import("@/lib/reels/reel-spec").ReelDraft;
   views: number;
   whatsappClicks: number;
   reviewedAt?: string;

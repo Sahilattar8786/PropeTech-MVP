@@ -1,5 +1,6 @@
 import type { HydratedDocument } from "mongoose";
 import { AI_FIELDS, canTransition, type FieldSource, type PropertyDTO, type PropertyStatus } from "@/lib/domain/property";
+import type { ReelDraft } from "@/lib/reels/reel-spec";
 import { propertyPublicUrl } from "@/lib/urls";
 import { formToPatch, publishBlockers, type PropertyFilters, type PropertyFormValues, type PropertyPatch } from "@/lib/validation/property";
 import type { TenantContext } from "@/server/auth/context";
@@ -192,6 +193,16 @@ export async function updateProperty(ctx: TenantContext, id: string, values: Pro
   await doc.save();
   await Media.updateMany({ tenantId: ctx.tenantId, url: { $in: newImages } }, { $set: { propertyId: doc._id } });
   return toPropertyDTO(doc);
+}
+
+/** Saves the broker's Instagram Reel edits. Slides may only use this property's own photos. */
+export async function saveReelDraft(ctx: TenantContext, id: string, draft: ReelDraft): Promise<void> {
+  assertCan(ctx, "property:write");
+  const doc = await findOwned(ctx, id);
+  const used = [draft.intro.image, ...draft.slides.map((s) => s.image)];
+  if (used.some((url) => !doc.images.includes(url))) throw new AppError("VALIDATION", "Reel photos must come from this property's photos");
+  doc.reel = { ...draft, updatedAt: new Date() };
+  await doc.save();
 }
 
 async function nextPropertyId(tenantId: string, prefix: string): Promise<string> {

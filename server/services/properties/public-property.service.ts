@@ -10,7 +10,7 @@ const PUBLIC_FILTER = { status: { $in: PUBLIC_STATUSES } };
 /** Fields never exposed publicly (raw WhatsApp text, AI internals). */
 function publicDTO(doc: IProperty): PropertyDTO {
   const dto = toPropertyDTO(doc);
-  return { ...dto, ingestion: undefined, aiMetadata: undefined, fieldSources: {}, source: undefined };
+  return { ...dto, ingestion: undefined, aiMetadata: undefined, fieldSources: {}, source: undefined, reel: undefined };
 }
 
 /** Shared links keep working after a sale: sold/rented listings render with a status banner. */

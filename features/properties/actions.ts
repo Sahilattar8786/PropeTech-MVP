@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { PROPERTY_STATUSES, type PropertyDTO, type PropertyStatus } from "@/lib/domain/property";
+import { reelDraftSchema, type ReelDraft } from "@/lib/reels/reel-spec";
 import { createFromTextSchema, propertyFormSchema, type CreateFromTextInput, type PropertyFormValues } from "@/lib/validation/property";
 import { getTenantContextOrThrow } from "@/server/auth/session";
 import { AppError, runAction, type ActionResult } from "@/server/lib/errors";
@@ -13,6 +14,7 @@ import {
   deleteProperty,
   publishProperty,
   retryAIProcessing,
+  saveReelDraft,
   updateProperty,
 } from "@/server/services/properties/property.service";
 import { retryFailedMedia } from "@/server/services/whatsapp/whatsapp-media.service";
@@ -97,5 +99,13 @@ export async function retryMediaAction(id: string): Promise<ActionResult<{ retri
     const ctx = await getTenantContextOrThrow();
     const retried = await retryFailedMedia(ctx.tenantId, id);
     return { retried };
+  });
+}
+
+export async function saveReelDraftAction(id: string, input: ReelDraft): Promise<ActionResult<{ savedAt: string }>> {
+  return runAction(async () => {
+    const ctx = await getTenantContextOrThrow();
+    await saveReelDraft(ctx, id, reelDraftSchema.parse(input));
+    return { savedAt: new Date().toISOString() };
   });
 }
