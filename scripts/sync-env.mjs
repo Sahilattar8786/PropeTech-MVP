@@ -68,6 +68,8 @@ if (environment === "production") {
   if (bad.length) fail(`Not allowed in production: ${bad.map(([k, v]) => `${k}=${v}`).join(", ")}. Remove from ${file}.`);
   if (/localhost|127\.0\.0\.1/.test(vars.get("NEXT_PUBLIC_APP_URL"))) fail("NEXT_PUBLIC_APP_URL points to localhost — use your live https:// URL.");
 }
+const notUrls = ["NEXT_PUBLIC_APP_URL", "S3_PUBLIC_URL", "S3_ENDPOINT", "AI_API_URL", "WHATSAPP_API_URL"].filter((k) => vars.has(k) && !/^https?:\/\//.test(vars.get(k)));
+if (notUrls.length) fail(`${notUrls.join(", ")} must start with https:// (e.g. https://media.example.com).`);
 
 if (!dryRun && !project && !existsSync(".vercel/project.json")) {
   fail('This folder isn\'t linked to a Vercel project. Run "npx vercel link" (or pass --project <name>), then run this again.');
