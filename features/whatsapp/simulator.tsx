@@ -96,3 +96,4 @@ export function WhatsAppSimulator({ senderNumbers, registeredNumber, connectCode
     </div>
   );
 }
+
