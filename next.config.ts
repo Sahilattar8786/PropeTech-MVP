@@ -1,7 +1,13 @@
 import type { NextConfig } from "next";
 
 const remotePatterns: NonNullable<NextConfig["images"]>["remotePatterns"] = [];
-if (process.env.S3_PUBLIC_URL) remotePatterns.push(new URL(`${process.env.S3_PUBLIC_URL.replace(/\/+$/, "")}/**`));
+const s3PublicUrl = process.env.S3_PUBLIC_URL?.trim().replace(/\/+$/, "");
+if (s3PublicUrl) {
+  if (!/^https?:\/\//.test(s3PublicUrl)) {
+    throw new Error(`S3_PUBLIC_URL must start with https:// (got "${s3PublicUrl}"), e.g. https://media.example.com`);
+  }
+  remotePatterns.push(new URL(`${s3PublicUrl}/**`));
+}
 
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },

@@ -34,7 +34,7 @@ const serverEnvSchema = z.object({
   S3_BUCKET: z.string().optional(),
   S3_ACCESS_KEY_ID: z.string().optional(),
   S3_SECRET_ACCESS_KEY: z.string().optional(),
-  S3_PUBLIC_URL: z.string().optional(),
+  S3_PUBLIC_URL: z.string().url("S3_PUBLIC_URL must be a full URL, e.g. https://media.example.com").optional(),
 
   MEDIA_SIGNING_SECRET: z.string().optional(),
   BILLING_PROVIDER: z.enum(["mock", "razorpay"]).default("mock"),
