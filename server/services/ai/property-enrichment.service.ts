@@ -17,10 +17,10 @@ export interface EnrichmentResult {
  * deterministic, fact-only templates. Plans without AI enrichment get a basic title.
  */
 export async function enrichProperty(facts: PropertyFacts, sourceText: string, opts: { enabled: boolean }): Promise<EnrichmentResult> {
-  if (!opts.enabled) return { copy: templateCopy(facts, { enriched: false }), generator: "template", warnings: [] };
+  if (!opts.enabled) return { copy: templateCopy(facts, { enriched: false, sourceText }), generator: "template", warnings: [] };
 
   const provider = getAIProvider();
-  if (provider.name === "rules") return { copy: templateCopy(facts, { enriched: true }), generator: "template", warnings: [] };
+  if (provider.name === "rules") return { copy: templateCopy(facts, { enriched: true, sourceText }), generator: "template", warnings: [] };
 
   try {
     const output = await provider.enrichProperty({ text: sourceText, images: [], facts });
@@ -29,7 +29,7 @@ export async function enrichProperty(facts: PropertyFacts, sourceText: string, o
       if (check.ok) return { copy: output.copy, generator: "llm", warnings: [] };
       logger.warn("AI copy rejected by validation", { reason: check.reason });
       return {
-        copy: templateCopy(facts, { enriched: true }),
+        copy: templateCopy(facts, { enriched: true, sourceText }),
         generator: "template",
         warnings: ["AI-written description included unverified details, so a fact-only description was used instead."],
       };
@@ -37,5 +37,5 @@ export async function enrichProperty(facts: PropertyFacts, sourceText: string, o
   } catch (error) {
     logger.warn("AI enrichment failed, using template copy", error);
   }
-  return { copy: templateCopy(facts, { enriched: true }), generator: "template", warnings: [] };
+  return { copy: templateCopy(facts, { enriched: true, sourceText }), generator: "template", warnings: [] };
 }

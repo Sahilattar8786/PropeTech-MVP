@@ -1,17 +1,20 @@
 import { templateCopy } from "./copywriter";
-import { canonicalCity, findCity, findLocality } from "./gazetteer";
+import { canonicalCity, findCity, findLocality, type LocalityMatch } from "./gazetteer";
 import {
   detectListingType,
   findAmenities,
+  findAgeYears,
   findArea,
   findBathrooms,
   findBedrooms,
+  findFloors,
   findFurnishing,
   findParking,
   findPincode,
   findPrices,
   findPropertyType,
   pickPrice,
+  stripPlaceQualifier,
 } from "./parsing";
 import { EMPTY_FACTS, type AIProvider, type FactKey, type PropertyAIInput, type PropertyAIOutput, type PropertyFacts } from "./types";
 
@@ -32,7 +35,10 @@ export class RulesProvider implements AIProvider {
     const listing = detectListingType(text, firstPrice);
     const price = pickPrice(text, listing?.value ?? null);
     const area = findArea(text);
-    const bedrooms = findBedrooms(text);
+    // A whole building has a mix of units, not one BHK.
+    const bedrooms = type?.value === "building" ? null : findBedrooms(text);
+    const floors = findFloors(text);
+    const ageYears = findAgeYears(text);
     const bathrooms = findBathrooms(text);
     const parking = findParking(text);
     const furnishing = findFurnishing(text);
@@ -59,6 +65,8 @@ export class RulesProvider implements AIProvider {
       parking,
       furnishing,
       amenities,
+      floors,
+      ageYears,
       area: area ? { value: area.value, unit: area.unit } : null,
       price: price ? { amount: price.amount, currency: "INR" } : null,
       location: location?.value ?? null,
@@ -70,11 +78,11 @@ export class RulesProvider implements AIProvider {
 
   async enrichProperty(input: PropertyAIInput): Promise<PropertyAIOutput> {
     const facts = input.facts ?? EMPTY_FACTS;
-    return { facts, copy: templateCopy(facts, { enriched: true }), fieldConfidence: {}, provider: this.name };
+    return { facts, copy: templateCopy(facts, { enriched: true, sourceText: input.text }), fieldConfidence: {}, provider: this.name };
   }
 
   private location(text: string, brokerCity?: string) {
-    const locality = findLocality(text);
+    const locality = findLocality(text) ?? writtenPlaceName(text);
     const statedCity = findCity(text);
     const pincode = findPincode(text);
     let city: { city: string; state: string } | null = statedCity;
@@ -101,4 +109,17 @@ export class RulesProvider implements AIProvider {
       confidence: locality ? confidence : 0.8,
     };
   }
+}
+
+/**
+ * Fallback for localities not in the gazetteer: a capitalised place name written right
+ * after "Location", "Area", "near" or "opp" on the same line ("Location Near Bommanahalli" → "Bommanahalli").
+ * It is literally in the message, so it passes grounding; its city stays unknown.
+ */
+function writtenPlaceName(text: string): LocalityMatch | null {
+  const m = /\b(?:[Ll]ocation|[Ll]oc|[Aa]rea|[Nn]ear|[Oo]pp(?:osite)?)\b[ \t]*[:\-]?[ \t]*((?:[Nn]ear|[Oo]pp(?:osite)?|[Bb]ehind)[ \t]+)?([A-Z][a-zA-Z]+(?:[ \t]+[A-Z][a-zA-Z]+){0,2})/.exec(text);
+  if (!m) return null;
+  const name = stripPlaceQualifier(m[2]!);
+  if (name.length < 3 || /^(Sale|Rent|Lease|Price|Asking|Floor|Ground|Building)$/i.test(name.split(/\s+/)[0]!)) return null;
+  return { locality: name, cities: [], index: m.index };
 }

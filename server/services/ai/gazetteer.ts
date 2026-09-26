@@ -23,6 +23,11 @@ export const CITIES: CityInfo[] = [
       "Panathur", "Thanisandra", "Hoodi", "Hosur Road", "Yeshwanthpur", "RT Nagar", "Frazer Town",
       "CV Raman Nagar", "Domlur", "Ulsoor", "MG Road", "Richmond Town", "Basavanagudi", "Kasavanahalli",
       "Harlur", "Kengeri", "Budigere Cross", "Hennur Road", "Bagalur", "Jakkur", "Kalyan Nagar", "HBR Layout",
+      "Bommanahalli", "Begur", "Hongasandra", "Bilekahalli", "Arekere", "Hulimavu", "Kudlu Gate", "Singasandra",
+      "Madiwala", "Ejipura", "Vivek Nagar", "Banaswadi", "Horamavu", "Ramamurthy Nagar", "Kammanahalli", "Nagawara",
+      "Hegde Nagar", "Vidyaranyapura", "Sahakar Nagar", "Vijayanagar", "Basaveshwaranagar", "Nagarbhavi",
+      "Rajarajeshwari Nagar", "RR Nagar", "Uttarahalli", "Konanakunte", "Bommasandra", "Chandapura", "Hoskote",
+      "Kadugodi", "Seegehalli", "Gunjur", "Carmelaram", "Dommasandra", "Haralur", "Mahalakshmi Layout", "Peenya",
     ],
   },
   {

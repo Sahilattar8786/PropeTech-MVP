@@ -34,6 +34,10 @@ export const propertyFactsSchema = z.object({
   furnishing: z.enum(FURNISHING_TYPES).nullable(),
   parking: z.number().int().min(0).max(50).nullable(),
   amenities: z.array(z.string().trim().min(1)).max(30),
+  /** Building structure as written, normalised to "G+3". Used in copy, not stored as a field. */
+  floors: z.string().regex(/^G\+\d{1,2}$/).nullable(),
+  /** Age of the property in years, if stated. Used in copy, not stored as a field. */
+  ageYears: z.number().int().min(0).max(100).nullable(),
 });
 export type PropertyFacts = z.infer<typeof propertyFactsSchema>;
 
@@ -93,4 +97,6 @@ export const EMPTY_FACTS: PropertyFacts = {
   furnishing: null,
   parking: null,
   amenities: [],
+  floors: null,
+  ageYears: null,
 };

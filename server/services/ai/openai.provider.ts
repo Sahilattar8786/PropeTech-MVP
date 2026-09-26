@@ -67,6 +67,8 @@ const FACTS_JSON_SCHEMA = {
     furnishing: { type: ["string", "null"], enum: [...FURNISHING_TYPES, null] },
     parking: { type: ["integer", "null"] },
     amenities: { type: "array", items: { type: "string" } },
+    floors: { type: ["string", "null"] },
+    ageYears: { type: ["integer", "null"] },
     fieldConfidence: {
       type: "object",
       additionalProperties: false,
@@ -101,18 +103,26 @@ STRICT RULES — never invent facts:
 - Prices: convert Indian units to rupees (1 Cr = 10000000, 1 Lakh/L/Lac = 100000, 1k = 1000). Ignore deposits, maintenance and per-sqft rates.
 - listingType: "rent" if rent/lease/per month wording is present; "sale" if sale wording is present or the price is in lakhs/crores without rent wording; otherwise null.
 - propertyType: flat/apartment → "apartment". If only BHK is given with no type word, use "apartment".
+- An ENTIRE building for sale → "building": e.g. "G+3 building", "independent/rental building", or units listed floor by floor ("ground - 1BHK, 1st-3rd - 2BHK"). A flat inside a building is still "apartment"; an "independent house" is "house".
+- bedrooms: a single BHK count only. For a "building", or when several different BHK sizes are listed, use null — never pick one unit's BHK.
+- floors: the structure as "G+N" when written (e.g. "G + 3" → "G+3"), otherwise null. ageYears: whole years if the age is written (e.g. "5 yrs old" → 5), otherwise null.
 - Area: use sqft or sqm as written. Convert sq.yards (×9) and acres (×43560) to sqft.
-- Location: locality exactly as written (proper case). City/state only if written, or if the locality unambiguously belongs to one well-known Indian city. Never use a city just because it is common.
+- Location: the locality name as written (proper case), WITHOUT direction words such as "near", "opp", "behind" or "next to" ("Near Bommanahalli" → "Bommanahalli"). City/state only if written, or if the locality unambiguously belongs to one well-known Indian city. Never use a city just because it is common.
 - amenities: only amenities literally mentioned, as short labels (e.g. "Swimming Pool", "Gym").
 - isProperty: false if the message is not describing a property (e.g. greetings, questions).
 - fieldConfidence: your confidence 0–1 for each extracted field, null for fields you left null.`;
 
-const ENRICHMENT_PROMPT = `You write listing copy for an Indian real-estate broker from VERIFIED FACTS (JSON).
+const ENRICHMENT_PROMPT = `You write listing copy for an Indian real-estate broker from VERIFIED FACTS (JSON) and the broker's ORIGINAL MESSAGE.
 
 STRICT RULES:
-- Use ONLY the facts provided. Do not add amenities, views, floor, facing, nearby landmarks, connectivity, RERA, possession, ownership, legal, builder or project claims.
-- Do not state any number that is not in the facts.
-- title: concise, e.g. "Premium 3 BHK Apartment in Whitefield" (≤ 70 chars). "Premium" is allowed only for sale prices ≥ ₹1 Cr.
+- Use ONLY information in the facts or written in the message (for example a floor-wise unit mix or the property's age). Do not add amenities, views, facing, nearby landmarks, connectivity, RERA, possession, ownership, legal, builder or project claims.
+- Do not state any number that appears in neither the facts nor the message.
+- Describe the property type exactly as in the facts: a "building" is an entire independent building (mention its floors and units if written), never a flat or apartment.
+- Location: if the message says "near X", write "near X" — never "in X".
+- Never infer quantities or details that aren't written, such as how many units are on each floor. Restate floor-wise details exactly as written (e.g. "Ground floor: 1 BHK; 1st, 2nd and 3rd floors: 2 BHK").
+- Area: state it as written (e.g. "600 sq.ft."). Do not call it built-up, carpet, super built-up, plot or land area, and do not attribute it to a unit or floor ("per unit", "each floor"), unless the message says so.
+- No claims about condition or surroundings that the message doesn't make: e.g. well-maintained, renovated, brand new, prime/convenient location, well connected.
+- title: concise, e.g. "Premium 3 BHK Apartment in Whitefield" or "G+3 Independent Building near Bommanahalli" (≤ 70 chars). "Premium" is allowed only for sale prices ≥ ₹1 Cr.
 - description: 60–120 words, professional and warm, plain text, ending with an invitation to enquire on WhatsApp.
 - highlights: up to 6 short chips built from the facts (e.g. "3 BHK", "1,800 sq.ft.", "Semi Furnished", "2 Parking").
 - seo.metaTitle ≤ 60 chars, seo.metaDescription ≤ 155 chars, seo.slug lowercase-hyphenated like "3bhk-whitefield".
@@ -146,7 +156,12 @@ export class OpenAIProvider implements AIProvider {
 
   async enrichProperty(input: PropertyAIInput): Promise<PropertyAIOutput> {
     const facts = input.facts ?? EMPTY_FACTS;
-    const raw = await this.complete(ENRICHMENT_PROMPT, `VERIFIED FACTS:\n${JSON.stringify(facts, null, 2)}`, "property_copy", COPY_JSON_SCHEMA);
+    const raw = await this.complete(
+      ENRICHMENT_PROMPT,
+      `VERIFIED FACTS:\n${JSON.stringify(facts, null, 2)}\n\nORIGINAL MESSAGE:\n"""\n${input.text}\n"""`,
+      "property_copy",
+      COPY_JSON_SCHEMA,
+    );
     const copy = propertyCopySchema.parse(raw);
     return { facts, copy, fieldConfidence: {}, provider: this.name };
   }

@@ -94,11 +94,32 @@ export function findArea(text: string): AreaMatch | null {
   return { value, unit: "sqft", raw: m[0] };
 }
 
+/** Every distinct BHK count mentioned ("g - 1bhk, 1st-3rd - 2bhk" → [1, 2]). */
+export function findAllBedrooms(text: string): number[] {
+  const values = [...text.matchAll(/(\d+(?:\.5)?)\s*-?\s*(?:bhk|b\.h\.k|bed(?:room)?s?|br)\b/gi)].map((m) => Number(m[1]));
+  // Lists and ranges before a single unit label: "2 and 3 BHK", "2/3 BHK", "2-3 BHK".
+  for (const m of text.matchAll(/\b(\d+(?:\.5)?(?:\s*(?:,|\/|&|\band\b|\bor\b|-|\bto\b)\s*\d+(?:\.5)?)+)\s*(?:bhk|b\.h\.k)\b/gi)) {
+    values.push(...(m[1]!.match(/\d+(?:\.5)?/g) ?? []).map(Number));
+  }
+  return [...new Set(values.filter((v) => v > 0 && v <= 20))];
+}
+
+/** A single configuration only. A mix of unit sizes (a building, a project) has no single BHK. */
 export function findBedrooms(text: string): number | null {
-  const m = /(\d+(?:\.5)?)\s*-?\s*(?:bhk|b\.h\.k|bed(?:room)?s?|br)\b/i.exec(text);
-  if (!m) return null;
-  const value = Number(m[1]);
-  return value > 0 && value <= 20 ? value : null;
+  const values = findAllBedrooms(text);
+  return values.length === 1 ? values[0]! : null;
+}
+
+/** "G + 3", "G+3", "ground + 3 floors" → "G+3". */
+export function findFloors(text: string): string | null {
+  const m = /\b(?:g|ground)\s*\+\s*(\d{1,2})\b/i.exec(text);
+  return m ? `G+${Number(m[1])}` : null;
+}
+
+/** "5 yrs old", "age: 5 years", "5 year old building" → 5. */
+export function findAgeYears(text: string): number | null {
+  const m = /(\d{1,2})\s*\+?\s*(?:yrs?|years?)\s*old\b/i.exec(text) ?? /\bage\s*[:\-]?\s*(\d{1,2})\s*(?:yrs?|years?)\b/i.exec(text);
+  return m ? Number(m[1]) : null;
 }
 
 export function findBathrooms(text: string): number | null {
@@ -135,13 +156,20 @@ const TYPE_KEYWORDS: [RegExp, PropertyType][] = [
   [/\b(commercial\s*space|commercial)\b/i, "commercial"],
 ];
 
+/** "Independent / rental / whole building" is unambiguous: the entire building is for sale. */
+const WHOLE_BUILDING = /\b(?:independent|rental|income|pg|entire|whole|full)\s+buildings?\b/i;
+/** A bare "building" or "G+3" is only a building listing when no unit type (flat, house…) is named. */
+const BUILDING_HINT = /\b(?:g|ground)\s*\+\s*\d{1,2}\b|\bbuildings?\b/i;
+
 export function findPropertyType(text: string): { value: PropertyType; confidence: number } | null {
+  if (WHOLE_BUILDING.test(text)) return { value: "building", confidence: 0.95 };
   let best: { value: PropertyType; index: number } | null = null;
   for (const [pattern, value] of TYPE_KEYWORDS) {
     const m = pattern.exec(text);
     if (m && (!best || m.index < best.index)) best = { value, index: m.index };
   }
   if (best) return { value: best.value, confidence: 0.95 };
+  if (BUILDING_HINT.test(text)) return { value: "building", confidence: 0.85 };
   // "3 BHK in Whitefield" without a type word is almost always an apartment.
   if (findBedrooms(text)) return { value: "apartment", confidence: 0.7 };
   return null;
@@ -183,6 +211,11 @@ export function findAmenities(text: string): string[] {
 export function findPincode(text: string): string | null {
   const m = /\b(?:pin(?:\s*code)?|pincode|zip)\s*[:\-]?\s*([1-9]\d{5})\b/i.exec(text);
   return m ? m[1] : null;
+}
+
+/** "Near Bommanahalli" → "Bommanahalli": a locality is a place, not a direction. */
+export function stripPlaceQualifier(value: string): string {
+  return value.replace(/^(?:near|opp(?:osite)?\.?|behind|next\s+to|beside|close\s+to|off)\s+/i, "").trim();
 }
 
 const NUMBER_WORDS: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };

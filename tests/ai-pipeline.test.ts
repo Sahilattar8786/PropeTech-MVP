@@ -117,3 +117,45 @@ describe("grounding (AI safety rule)", () => {
     expect(result.warnings.join(" ")).toMatch(/unverified/);
   });
 });
+
+describe("buildings, unit mixes and localities", () => {
+  const building = "G + 3 Building\n600 Sqft\ng - 1bhk\n1st, 2nd, 3rd - 2bhk \n5 yrs old\nAsking price 1.5Cr\nLocation Near Bommanahalli";
+
+  it("treats a G+N building with floor-wise units as an independent building", async () => {
+    setAIProvider(new RulesProvider());
+    const { facts, copy } = await runPropertyAIPipeline({ text: building, images: [] }, { enrichment: true });
+    expect(facts).toMatchObject({ propertyType: "building", bedrooms: null, floors: "G+3", ageYears: 5, area: { value: 600, unit: "sqft" } });
+    expect(facts.location).toMatchObject({ locality: "Bommanahalli", city: "Bangalore" });
+    expect(copy.title).toBe("Premium G+3 Independent Building near Bommanahalli");
+    expect(copy.highlights).toEqual(expect.arrayContaining(["G+3", "5 years old"]));
+    expect(copy.description).not.toMatch(/\.\./);
+  });
+
+  it("keeps a flat inside a building as an apartment", async () => {
+    setAIProvider(new RulesProvider());
+    const { facts } = await runPropertyAIPipeline({ text: "3 BHK flat on 2nd floor of G+4 building in HSR Layout, 95 L", images: [] }, { enrichment: true });
+    expect(facts.propertyType).toBe("apartment");
+    expect(facts.bedrooms).toBe(3);
+  });
+
+  it("does not pick one BHK when several are listed", async () => {
+    setAIProvider(new RulesProvider());
+    const { facts } = await runPropertyAIPipeline({ text: "2 and 3 BHK flats available in Whitefield from 85 lakh", images: [] }, { enrichment: true });
+    expect(facts.bedrooms).toBeNull();
+  });
+
+  it("strips direction words from localities and fills an unambiguous city", () => {
+    const { facts } = groundFacts({ ...EMPTY_FACTS, isProperty: true, location: { address: null, locality: "Near Bommanahalli", city: null, state: null, pincode: null } }, building);
+    expect(facts.location).toMatchObject({ locality: "Bommanahalli", city: "Bangalore", state: "Karnataka" });
+  });
+
+  it("lets copy restate what the broker wrote, but not embellish it", () => {
+    const facts: PropertyFacts = { ...EMPTY_FACTS, isProperty: true, propertyType: "building", floors: "G+3", ageYears: 5, price: { amount: 15000000, currency: "INR" }, area: { value: 600, unit: "sqft" } };
+    const base = { title: "G+3 Independent Building near Bommanahalli", highlights: [], seo: null };
+    const ok = "This 5-year-old G+3 building has a 1 BHK on the ground floor and 2 BHK units on the 1st, 2nd and 3rd floors. 600 sq.ft. at ₹1.50 Cr.";
+    expect(validateCopy({ ...base, description: ok }, facts, building).ok).toBe(true);
+    expect(validateCopy({ ...base, description: "Each floor spans 600 sq.ft." }, facts, building).ok).toBe(false);
+    expect(validateCopy({ ...base, description: "The built-up area is 600 sq.ft." }, facts, building).ok).toBe(false);
+    expect(validateCopy({ ...base, description: "A well-maintained building." }, facts, building).ok).toBe(false);
+  });
+});

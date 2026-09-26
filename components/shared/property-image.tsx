@@ -7,6 +7,7 @@ const VARIANT_BY_TYPE: Partial<Record<PropertyType, IllustrationVariant>> = {
   villa: "villa",
   bungalow: "villa",
   house: "villa",
+  building: "courtyard",
   office: "office",
   commercial: "office",
   shop: "office",

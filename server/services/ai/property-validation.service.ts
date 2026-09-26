@@ -1,5 +1,5 @@
 import { citiesForLocality, findCity } from "./gazetteer";
-import { AMENITY_KEYWORDS, numbersInText } from "./parsing";
+import { AMENITY_KEYWORDS, findAgeYears, findFloors, numbersInText, stripPlaceQualifier } from "./parsing";
 import type { FactKey, PropertyCopy, PropertyFacts } from "./types";
 
 /**
@@ -88,9 +88,24 @@ export function groundFacts(facts: PropertyFacts, sourceText: string): Grounding
   }
   out.amenities = [...new Set(amenities)];
 
+  if (out.floors && findFloors(text) !== out.floors) {
+    out.floors = null;
+    warnings.push("Number of floors was not found in the message.");
+  }
+  if (out.ageYears !== null && findAgeYears(text) !== out.ageYears) out.ageYears = null;
+
   if (out.location) {
     const loc = { ...out.location };
+    if (loc.locality) loc.locality = stripPlaceQualifier(loc.locality) || null;
     if (loc.locality && !textIncludes(text, loc.locality)) loc.locality = null;
+    // A locality that belongs to exactly one known city implies that city (Whitefield → Bangalore).
+    if (loc.locality && !loc.city) {
+      const cities = citiesForLocality(loc.locality);
+      if (cities.length === 1) {
+        loc.city = cities[0]!.city;
+        loc.state = cities[0]!.state;
+      }
+    }
     if (loc.address && !textIncludes(text, loc.address)) loc.address = null;
     if (loc.pincode && !text.includes(loc.pincode)) loc.pincode = null;
     if (loc.city) {
@@ -116,16 +131,21 @@ const GUARDED_CLAIMS: [RegExp, RegExp][] = [
   [/\brera\b/i, /\brera\b/i],
   [/possession|ready[\s-]to[\s-]move|under[\s-]construction|new[\s-]launch/i, /possession|ready|construction|launch/i],
   [/freehold|leasehold|clear title|legal|approved|khata|\boc\b|occupancy certificate/i, /freehold|leasehold|title|legal|approved|khata|\boc\b|occupancy/i],
-  [/\bfloor\b/i, /\bfloor\b/i],
+  [/\bfloors?\b|\bstorey/i, /\bfloors?\b|\b(?:g|ground)\s*\+\s*\d|\b\d+(?:st|nd|rd|th)\b/i],
   [/\bfacing\b|vastu/i, /facing|vastu/i],
   [/builder|developer|\bproject\b/i, /builder|developer|project/i],
   [/metro|airport|school|hospital|mall|tech\s*park|it\s*park|highway/i, /metro|airport|school|hospital|mall|tech\s*park|it\s*park|highway/i],
   [/\bview\b|sea[\s-]facing|lake/i, /view|sea|lake/i],
+  [/built[\s-]?up|carpet|super[\s-]?(?:built|area)|plot\s*area|land\s*area|site\s*area|\bsaleable\b/i, /built|carpet|super|plot|land|site|saleable|\bsba\b|\buds\b/i],
+  [/\b(?:per|each)\s+(?:unit|floor|flat)\b/i, /\b(?:per|each)\s+(?:unit|floor|flat)\b/i],
+  [/well[\s-]maintained|renovated|refurbished|brand[\s-]new|newly\s+(?:built|constructed|painted)/i, /maintained|renovat|refurbish|brand[\s-]new|newly|new\s+construction/i],
+  [/prime\s+location|well[\s-]connected|convenient(?:ly)?\s+(?:location|located)|excellent\s+connectivity/i, /prime|connect|convenient/i],
 ];
 
-/** Numbers the copy is allowed to mention: the facts, in every format we render them. */
-function allowedNumbers(facts: PropertyFacts): number[] {
-  const allowed = [0, 1, 7, 24];
+/** Numbers the copy may mention: the facts (in every format we render them) and anything the broker wrote. */
+function allowedNumbers(facts: PropertyFacts, sourceText: string): number[] {
+  const allowed = [0, 1, 7, 24, ...numbersInText(sourceText)];
+  if (facts.ageYears !== null) allowed.push(facts.ageYears);
   if (facts.price) allowed.push(facts.price.amount, facts.price.amount / 1e7, facts.price.amount / 1e5, facts.price.amount / 1e3);
   if (facts.area) allowed.push(facts.area.value);
   for (const n of [facts.bedrooms, facts.bathrooms, facts.parking]) if (n !== null) allowed.push(n);
@@ -136,7 +156,7 @@ function allowedNumbers(facts: PropertyFacts): number[] {
 /** Rejects LLM copy that mentions unsupported numbers or guarded claims. */
 export function validateCopy(copy: PropertyCopy, facts: PropertyFacts, sourceText: string): { ok: boolean; reason?: string } {
   const body = [copy.title, copy.description ?? "", ...copy.highlights].join(" \n ");
-  const allowed = allowedNumbers(facts);
+  const allowed = allowedNumbers(facts, sourceText);
   for (const n of numbersInText(body)) {
     if (!approxIn(allowed, n, 0.02)) return { ok: false, reason: `Copy mentions unsupported number ${n}` };
   }
