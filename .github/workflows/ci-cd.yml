@@ -1,0 +1,86 @@
+name: CI / CD
+
+# Every pull request and push to main runs the checks.
+# Deploy jobs are opt-in (repository variables), so they never double-deploy
+# alongside Vercel's / Railway's own GitHub integrations. See docs/deploy-production.md.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Typecheck · Lint · Test · Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      # Integration tests (tenant isolation) need a real MongoDB.
+      mongodb:
+        image: mongo:7
+        ports: ["27017:27017"]
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+
+  deploy-web:
+    name: Deploy web → Vercel (production)
+    needs: checks
+    # Opt in by setting repository variable DEPLOY_WEB_FROM_ACTIONS=true
+    # (and disabling Vercel's automatic production deploys, see docs).
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_WEB_FROM_ACTIONS == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm install --global vercel@latest
+      - name: Pull production settings and env vars
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+      - name: Build
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+      - name: Deploy
+        run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+
+  deploy-worker:
+    name: Deploy worker → Railway
+    needs: checks
+    # Opt in by setting repository variable DEPLOY_WORKER_FROM_ACTIONS=true.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_WORKER_FROM_ACTIONS == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    steps:
+      - uses: actions/checkout@v5
+      - name: Deploy with Railway CLI (builds Dockerfile.worker via railway.json)
+        run: npx --yes @railway/cli up --ci --service "${{ vars.RAILWAY_WORKER_SERVICE || 'worker' }}"
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}

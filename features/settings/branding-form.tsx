@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { WhatsAppIcon } from "@/components/shared/whatsapp-icon";
 import { DEFAULT_BRAND_COLOR, type BrokerDTO } from "@/lib/domain/broker";
 import { initials } from "@/lib/format";
+import { prepareImageForUpload } from "@/lib/image-compress";
 import { cn } from "@/lib/utils";
 import { updateBrandingAction } from "./actions";
 
@@ -21,7 +22,7 @@ function ImageSlot({ label, value, onChange, round }: { label: string; value?: s
     setUploading(true);
     try {
       const form = new FormData();
-      form.append("file", file);
+      form.append("file", await prepareImageForUpload(file));
       const res = await fetch("/api/media/upload", { method: "POST", body: form });
       const body = await res.json();
       if (!res.ok) throw new Error(body?.error?.message ?? "Upload failed");

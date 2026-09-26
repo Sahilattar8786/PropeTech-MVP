@@ -10,6 +10,13 @@ export const siteConfig = {
   secondaryTagline: "Your WhatsApp property inventory, organized and powered by AI.",
   supportEmail: "support@propflow.in",
   locale: "en_IN",
+  /** Shown on /privacy and /terms — set to your registered company details before launch. */
+  legal: {
+    entityName: "PropFlow",
+    address: "",
+    jurisdiction: "India",
+    lastUpdated: "26 September 2026",
+  },
 } as const;
 
 function trimSlash(value: string) {

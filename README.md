@@ -81,6 +81,8 @@ proxy.ts             subdomain / custom-domain rewrites + optimistic auth redire
 
 ## Production notes
 
+**Step-by-step go-live guide:** [docs/deploy-production.md](docs/deploy-production.md) (Vercel, Railway worker via `Dockerfile.worker`, Atlas, Cloudflare R2/DNS, Google login, WhatsApp, GitHub Actions). Custom broker domains: [docs/custom-domains.md](docs/custom-domains.md).
+
 - Set `REDIS_URL` and run `npm run worker` as a long-running process. The in-process queue driver is for development; serverless platforms don't keep timers alive after a response, so WhatsApp processing needs the worker there.
 - Use `STORAGE_DRIVER=s3` on serverless/ephemeral hosts (local disk isn't persistent) and set `S3_PUBLIC_URL` so `next/image` allows the bucket/CDN host.
 - Set `WHATSAPP_APP_SECRET` (required in production for the Meta provider) and `WHATSAPP_VERIFY_TOKEN`; point the Meta webhook at `{APP_URL}/api/webhooks/whatsapp`. Outside the 24-hour window the broker notification uses the `property_draft_ready` template, which must be approved in Meta.

@@ -98,7 +98,11 @@ export function RegisterForm({ googleEnabled }: { googleEnabled: boolean }) {
           {busy && <Loader2 className="size-4 animate-spin" />}
           {busy ? "Setting up your workspace…" : "Create My Broker Account"}
         </Button>
-        <p className="text-center text-xs text-muted-foreground">Includes a 14-day Pro trial. No credit card required.</p>
+        <p className="text-center text-xs text-muted-foreground">
+          Includes a 14-day Pro trial. No credit card required. By signing up you agree to our{" "}
+          <Link href="/terms" className="underline underline-offset-2">Terms</Link> and{" "}
+          <Link href="/privacy" className="underline underline-offset-2">Privacy Policy</Link>.
+        </p>
       </form>
 
       <FieldSeparator className="my-6">OR</FieldSeparator>

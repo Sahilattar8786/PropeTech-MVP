@@ -1,4 +1,5 @@
 import type { PlanId } from "@/lib/config/plans";
+import { env } from "@/server/lib/env";
 import { AppError } from "@/server/lib/errors";
 
 /**
@@ -13,10 +14,21 @@ export interface BillingProvider {
   cancel(input: { tenantId: string; providerSubscriptionId?: string }): Promise<void>;
 }
 
+/**
+ * Test-mode billing activates paid plans without payment, so it's refused in production
+ * unless ALLOW_TEST_BILLING=true (e.g. a staging deployment).
+ */
+export function testBillingAllowed(): boolean {
+  return process.env.NODE_ENV !== "production" || env().ALLOW_TEST_BILLING === "true";
+}
+
 export class MockBillingProvider implements BillingProvider {
   readonly name = "mock" as const;
 
   async startCheckout(): Promise<CheckoutResult> {
+    if (!testBillingAllowed()) {
+      throw new AppError("INTEGRATION", "Online payments aren't enabled yet. Contact us to upgrade your plan.");
+    }
     const periodEnd = new Date();
     periodEnd.setMonth(periodEnd.getMonth() + 1);
     return { type: "activated", periodEnd };

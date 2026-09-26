@@ -3,9 +3,9 @@
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertCircle, ArrowLeft, ArrowRight, ImagePlus, Loader2, Star, X } from "lucide-react";
+import { MAX_UPLOAD_BYTES, prepareImageForUpload } from "@/lib/image-compress";
 import { cn } from "@/lib/utils";
 
-const MAX_BYTES = 10 * 1024 * 1024;
 const MAX_IMAGES = 20;
 const CONCURRENCY = 3;
 
@@ -57,7 +57,7 @@ export function ImageUploader({ value, onChange, disabled }: { value: string[]; 
           id: `${file.name}-${file.size}-${Math.random().toString(36).slice(2)}`,
           preview: URL.createObjectURL(file),
           progress: 0,
-          error: !file.type.startsWith("image/") ? "Not an image" : file.size > MAX_BYTES ? "Larger than 10 MB" : undefined,
+          error: !file.type.startsWith("image/") ? "Not an image" : undefined,
         },
       }));
       setPending((prev) => [...prev, ...queue.map((q) => q.item)]);
@@ -91,7 +91,9 @@ export function ImageUploader({ value, onChange, disabled }: { value: string[]; 
         for (let next = remaining.shift(); next; next = remaining.shift()) {
           const { file, item, index } = next;
           try {
-            const { url } = await uploadFile(file, (progress) => setPending((prev) => prev.map((p) => (p.id === item.id ? { ...p, progress } : p))));
+            const prepared = await prepareImageForUpload(file);
+            if (prepared.size > MAX_UPLOAD_BYTES) throw new Error("Photo is too large — try a smaller one");
+            const { url } = await uploadFile(prepared, (progress) => setPending((prev) => prev.map((p) => (p.id === item.id ? { ...p, progress } : p))));
             results[index] = url;
           } catch (error) {
             results[index] = null;
@@ -182,7 +184,7 @@ export function ImageUploader({ value, onChange, disabled }: { value: string[]; 
             {value.length === 0 && pending.length === 0 ? (
               <>
                 <span className="text-sm text-foreground">Add property photos</span>
-                <span>Tap to choose or drag &amp; drop · JPG, PNG, WebP up to 10 MB</span>
+                <span>Tap to choose or drag &amp; drop · JPG, PNG or WebP</span>
               </>
             ) : (
               "Add more"

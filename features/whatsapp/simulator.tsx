@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { prepareImageForUpload } from "@/lib/image-compress";
 import { formatPhone } from "@/lib/phone";
 
 const SAMPLE = "New Property\n3 BHK Apartment\nWhitefield\n1800 sqft\n₹1.5 Cr\nSemi Furnished\n2 Parking";
@@ -30,7 +31,7 @@ export function WhatsAppSimulator({ senderNumbers, registeredNumber, connectCode
       const form = new FormData();
       form.set("from", from);
       form.set("text", text);
-      files.forEach((f) => form.append("images", f));
+      for (const f of files) form.append("images", await prepareImageForUpload(f));
       const res = await fetch("/api/dev/whatsapp/simulate", { method: "POST", body: form });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body?.error?.message ?? "Couldn't send");

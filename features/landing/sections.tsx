@@ -464,6 +464,8 @@ export function SiteFooter() {
           <a href="#pricing" className="hover:text-foreground">Pricing</a>
           <Link href="/login" className="hover:text-foreground">Log in</Link>
           <a href={`mailto:${siteConfig.supportEmail}`} className="hover:text-foreground">Contact</a>
+          <Link href="/privacy" className="hover:text-foreground">Privacy</Link>
+          <Link href="/terms" className="hover:text-foreground">Terms</Link>
         </nav>
         <p>© {new Date().getFullYear()} {siteConfig.name}</p>
       </div>

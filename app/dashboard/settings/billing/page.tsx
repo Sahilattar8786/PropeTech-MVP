@@ -5,7 +5,9 @@ import { PLANS } from "@/lib/config/plans";
 import { formatDate } from "@/lib/format";
 import { can } from "@/server/auth/rbac";
 import { requireTenantContext } from "@/server/auth/session";
+import { testBillingAllowed } from "@/server/services/subscriptions/billing.provider";
 import { getSubscription, getUsage } from "@/server/services/subscriptions/subscription.service";
+import { siteConfig } from "@/lib/config/site";
 
 export const metadata: Metadata = { title: "Billing" };
 
@@ -31,6 +33,7 @@ export default async function BillingPage() {
   const [subscription, usage] = await Promise.all([getSubscription(ctx.tenantId), getUsage(ctx.tenantId)]);
   const plan = PLANS[subscription.plan];
   const trialing = subscription.status === "trialing";
+  const selfServeUpgrades = subscription.provider !== "mock" || testBillingAllowed();
   return (
     <div className="max-w-5xl space-y-6">
       <section className="grid gap-6 rounded-2xl border bg-card p-5 shadow-soft sm:grid-cols-2 sm:p-6">
@@ -52,10 +55,17 @@ export default async function BillingPage() {
       </section>
       {subscription.provider === "mock" && (
         <p className="flex items-center gap-2 rounded-xl border bg-surface px-4 py-3 text-sm text-muted-foreground">
-          <Info className="size-4 shrink-0" /> Payments are in test mode — plan changes apply instantly without charging.
+          <Info className="size-4 shrink-0" />
+          {selfServeUpgrades ? (
+            "Payments are in test mode — plan changes apply instantly without charging."
+          ) : (
+            <span>
+              Online payments are coming soon. To upgrade, email <a href={`mailto:${siteConfig.supportEmail}`} className="underline underline-offset-4">{siteConfig.supportEmail}</a>.
+            </span>
+          )}
         </p>
       )}
-      <PlanPicker current={subscription.plan} trialing={trialing} canManage={can(ctx.role, "billing:manage")} />
+      <PlanPicker current={subscription.plan} trialing={trialing} canManage={can(ctx.role, "billing:manage") && selfServeUpgrades} />
     </div>
   );
 }

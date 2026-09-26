@@ -38,6 +38,7 @@ const serverEnvSchema = z.object({
 
   MEDIA_SIGNING_SECRET: z.string().optional(),
   BILLING_PROVIDER: z.enum(["mock", "razorpay"]).default("mock"),
+  ALLOW_TEST_BILLING: z.enum(["true", "false"]).optional(),
   ADMIN_EMAILS: z.string().default(""),
   CUSTOM_DOMAIN_CNAME_TARGET: z.string().default("cname.vercel-dns.com"),
 });
