@@ -8,3 +8,10 @@ export interface TenantContext {
   email: string;
   name: string;
 }
+
+/** PropFlow staff (User.platformRole or ADMIN_EMAILS). Platform-wide — admin services are not tenant-scoped. */
+export interface PlatformAdmin {
+  userId: string;
+  email: string;
+  name: string;
+}

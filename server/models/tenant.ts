@@ -6,6 +6,9 @@ export interface ITenant {
   name: string;
   ownerId: ObjectId;
   status: "active" | "suspended";
+  suspendedAt?: Date;
+  /** Internal reason recorded by the platform admin who suspended the workspace. */
+  suspendedReason?: string;
   /** Monotonic counter used to generate human-friendly property IDs (REH-1024). */
   propertySeq: number;
   createdAt: Date;
@@ -16,7 +19,9 @@ const tenantSchema = new Schema<ITenant>(
   {
     name: { type: String, required: true, trim: true },
     ownerId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    status: { type: String, enum: ["active", "suspended"], default: "active" },
+    status: { type: String, enum: ["active", "suspended"], default: "active", index: true },
+    suspendedAt: Date,
+    suspendedReason: { type: String, trim: true, maxlength: 500 },
     propertySeq: { type: Number, default: 1000 },
   },
   { timestamps: true },

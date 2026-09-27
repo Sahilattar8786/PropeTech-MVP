@@ -8,6 +8,7 @@ import { AppError, notFound } from "@/server/lib/errors";
 import { Broker, Media, type IBroker } from "@/server/models";
 import { getEntitlements } from "@/server/services/subscriptions/subscription.service";
 import { audit } from "@/server/services/audit/audit.service";
+import { isTenantSuspended } from "./tenant-status.service";
 import type { BrandingInput, ProfileInput } from "@/lib/validation/settings";
 import { normalizePhone } from "@/lib/phone";
 
@@ -45,7 +46,8 @@ export const getPublicBrokerBySlug = cache(async (slug: string): Promise<BrokerD
   if (!isValidBrokerSlug(slug)) return null;
   await connectDB();
   const doc = await Broker.findOne({ slug: slug.toLowerCase() }).lean<IBroker>();
-  return doc ? toBrokerDTO(doc) : null;
+  if (!doc || (await isTenantSuspended(String(doc.tenantId)))) return null;
+  return toBrokerDTO(doc);
 });
 
 export async function isBrokerSlugAvailable(slug: string, exceptTenantId?: string): Promise<boolean> {

@@ -23,9 +23,11 @@ Adding the domain to our hosting (Vercel) is a **manual ops step** until automat
 | Step | Who |
 |---|---|
 | 1. Broker adds the domain in PropFlow | Broker (support can guide) |
-| 2. Add the domain to the Vercel project | **Ops/Dev** (needs Vercel access) |
+| 2. Add the domain to the Vercel project, then **Mark added to hosting** in `/admin/domains` | **Ops/Dev** (needs Vercel access) |
 | 3. Broker adds 2 DNS records at their registrar | Broker (support guides) |
-| 4. Click **Verify** in PropFlow | Broker or support |
+| 4. Click **Verify** in PropFlow | Broker, or **Check DNS** in `/admin/domains` |
+
+New requests appear in **Admin → Domain requests → Needs setup** (the sidebar shows a count). A domain goes live — and the broker's links switch to it — only once it's **both** marked as on hosting **and** DNS-verified, so steps 2 and 3/4 can happen in either order.
 
 ### Step by step
 
@@ -38,7 +40,8 @@ Dashboard → **Settings → Domain** → type `www.amanbroker.com` → **Add**.
 | CNAME | `www.amanbroker.com` | `cname.vercel-dns.com` | Sends visitors to PropFlow |
 
 **2. Ops adds the domain in Vercel**
-Vercel → project → **Settings → Domains → Add Domain** → enter exactly the same hostname (`www.amanbroker.com`) → Production.
+Vercel → project → **Settings → Domains → Add Domain** → enter exactly the same hostname (`www.amanbroker.com`) → Production. Then in PropFlow: **Admin → Domain requests** → **Mark added to hosting**.
+- Not a legitimate request (e.g. clearly someone else's brand)? **Reject** it with a reason instead — the broker sees the reason in Settings → Domain.
 - If Vercel offers to add `amanbroker.com` redirecting to `www`, accept.
 - If Vercel shows a **different CNAME value** than PropFlow, give the broker **Vercel's value**. Tell dev so they can update `CUSTOM_DOMAIN_CNAME_TARGET`.
 
@@ -55,7 +58,7 @@ At most registrars the **Host/Name** field is only the part *before* the domain,
 - DNS usually updates in 5–30 minutes. It can take up to 24 hours at some registrars.
 
 **4. Verify**
-Once Vercel shows **Valid Configuration**, click **Verify** in PropFlow → status becomes **Verified**.
+Once Vercel shows **Valid Configuration**, click **Verify** in PropFlow (or **Check DNS** in the admin queue) → status becomes **Live**. If DNS is verified before ops has finished step 2, the broker sees **Verified · connecting** until the domain is marked as on hosting.
 The domain starts working within about **1 minute**. Existing listing pages show the new links within **5 minutes** (page cache).
 
 **5. Test**
@@ -73,7 +76,8 @@ Open `https://www.amanbroker.com` → the broker's website. Open a listing → t
 | Symptom | Likely cause | Fix |
 |---|---|---|
 | **Verify** stays "Not verified yet" | TXT not visible yet, or entered with the full name | Host must be `_propflow.www`, not `_propflow.www.amanbroker.com` (that becomes `…amanbroker.com.amanbroker.com`). Wait, then Verify again |
-| "This domain is already connected" | The same hostname is on another PropFlow account | Check `/admin`. Remove it from the old account first |
+| "This domain is already connected" | The same hostname is on another PropFlow account | Search the hostname in **Admin → Workspaces**. Remove it from the old account first |
+| Broker sees **Declined** | Ops rejected the request | The reason is shown to the broker. **Reopen** it in **Admin → Domain requests → Rejected** if it was a mistake |
 | "Custom domains are available on the Business plan" | Broker isn't on Business | Upgrade in **Settings → Billing** |
 | Vercel shows "Invalid Configuration" | Wrong/extra DNS records, or Cloudflare proxy on | Only one CNAME on `www`. Cloudflare: DNS only |
 | Browser shows an SSL/certificate warning | Certificate not issued yet, or a CAA record blocks it | Wait ~10 min after Vercel shows Valid. If the domain has CAA records, they must allow Let's Encrypt |
@@ -83,7 +87,9 @@ Open `https://www.amanbroker.com` → the broker's website. Open a listing → t
 | Bare `amanbroker.com` doesn't work | Only `www` was connected | Registrar forwarding `amanbroker.com` → `www.amanbroker.com`, or add the bare domain in Vercel too (A record `76.76.21.21`, or the value Vercel shows) |
 
 ### Removing a domain
-Broker: **Settings → Domain → Remove**. Their links switch back to the PropFlow address immediately. Ops: remove the same domain from the Vercel project. The broker can then delete the DNS records.
+Broker: **Settings → Domain → Remove**. Their links switch back to the PropFlow address immediately. If the domain was on hosting it moves to **Admin → Domain requests → Needs removal**: remove it from the Vercel project, then click **Mark removed from hosting**. The broker can then delete the DNS records.
+
+Admins can also **Disconnect** a live domain (e.g. after a downgrade from Business) — it follows the same removal path. The admin queue flags domains whose workspace's plan no longer includes custom domains.
 
 ### Message template for brokers
 > Hi {name}, to connect **{domain}** to your PropFlow website, please add these two records in your domain's DNS settings ({registrar}):
@@ -107,6 +113,7 @@ Broker: **Settings → Domain → Remove**. Their links switch back to the PropF
 | Concern | File |
 |---|---|
 | Add / verify / remove, TXT check, entitlement, audit log | `server/services/domains/domain.service.ts` |
+| Ops queue: mark on hosting, reject, reopen, disconnect, complete removal | `server/services/admin/domain-admin.service.ts`, `app/admin/domains/page.tsx` |
 | Host → slug lookup used by the proxy | `app/api/domains/resolve/route.ts` |
 | Host routing | `proxy.ts` |
 | URL building (custom domain → subdomain → path) | `lib/urls.ts` (`brokerBaseUrl`) |
@@ -119,7 +126,9 @@ Broker: **Settings → Domain → Remove**. Their links switch back to the PropF
 ### Verification
 - The TXT record is `_propflow.<hostname>` with value `propflow-verify=<token>` (24 random hex chars per domain).
 - Verification runs `dns.resolveTxt` when the broker clicks **Verify**. There's no background re-check.
-- On success: `Domain.status = verified`, `Broker.customDomain = hostname`. Removing clears both.
+- `Domain.status` is DNS verification; `Domain.setupStatus` is the ops workflow: `requested` → `configured` (on hosting) → `removal_requested` (broker removed it; tombstone hidden from the broker) → deleted. Or `rejected`, with `rejectionReason` shown to the broker.
+- `Broker.customDomain` is set only while the domain is live (`verified` **and** `configured`) — see `syncBrokerCustomDomain`. Domains created before `setupStatus` existed are backfilled on first load of the admin queue (verified → `configured`, others → `requested`).
+- Re-adding a hostname that's still waiting for removal reuses its hosting setup (`configured`), so ops doesn't redo it.
 
 ### Environment
 | Variable | Purpose |
@@ -129,7 +138,7 @@ Broker: **Settings → Domain → Remove**. Their links switch back to the PropF
 | `NEXT_PUBLIC_ROOT_DOMAIN` | Optional. Enables `{slug}.{root}` subdomains; hosts under it are never treated as custom domains |
 
 ### Known gaps
-1. **Vercel registration is manual.** Planned: on add/remove, call the Vercel API (add domain to project, remove, read its config/verification status). Show Vercel's exact records and a live "SSL active" status in the Domain page. Needs `VERCEL_API_TOKEN`, `VERCEL_PROJECT_ID` and `VERCEL_TEAM_ID`.
+1. **Vercel registration is manual** (tracked in the admin queue). Planned: on add/remove, call the Vercel API (add domain to project, remove, read its config/verification status). Show Vercel's exact records and a live "SSL active" status in the Domain page. Needs `VERCEL_API_TOKEN`, `VERCEL_PROJECT_ID` and `VERCEL_TEAM_ID`.
 2. **No limit on domains per workspace.** Business can add several. Add a `maxCustomDomains` entitlement if pricing includes only one.
 3. **Plan downgrade doesn't disconnect the domain.** Decide the policy (grace period, then remove) and enforce it in `changePlan`.
 4. **The proxy's 60 s negative cache** means a freshly verified domain can take up to a minute per server instance.
