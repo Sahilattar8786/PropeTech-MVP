@@ -89,4 +89,4 @@ proxy.ts             subdomain / custom-domain rewrites + optimistic auth redire
 - Set `WHATSAPP_APP_SECRET` (required in production for the Meta provider) and `WHATSAPP_VERIFY_TOKEN`; point the Meta webhook at `{APP_URL}/api/webhooks/whatsapp`. Outside the 24-hour window the broker notification uses the `property_draft_ready` template, which must be approved in Meta.
 - Broker subdomains need a wildcard DNS record and `NEXT_PUBLIC_ROOT_DOMAIN`. Custom domains are verified with a TXT record (`_propflow.<domain>`) and resolved by the proxy.
 - The rate limiter is in-memory per instance; move it to Redis when running multiple instances.
-- `ADMIN_EMAILS` grants access to `/admin` (platform overview).
+- `ADMIN_EMAILS` (or `User.platformRole = "admin"`) grants access to the `/admin` console: revenue (MRR, collected payments), subscriptions (plan changes, trials, custom prices, recording offline UPI/bank payments), the custom-domain setup queue, workspaces (suspend/reactivate) and an audit log of every admin action. Access is re-checked against the database on each request.

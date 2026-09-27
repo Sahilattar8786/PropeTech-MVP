@@ -6,4 +6,5 @@ export * from "./collection";
 export * from "./lead";
 export * from "./whatsapp";
 export * from "./misc";
+export * from "./invoice";
 export { isObjectId, ObjectId } from "./_shared";

@@ -4,7 +4,7 @@ import { PUBLIC_STATUSES } from "@/lib/domain/property";
 import { brokerBaseUrl, collectionPublicUrl, propertyPublicUrl } from "@/lib/urls";
 import { connectDB } from "@/server/db/connect";
 import { logger } from "@/server/lib/logger";
-import { Broker, Collection, Property, type IBroker, type ICollection, type IProperty } from "@/server/models";
+import { Broker, Collection, Property, Tenant, type IBroker, type ICollection, type IProperty } from "@/server/models";
 
 export const revalidate = 3600;
 
@@ -19,8 +19,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
   try {
     await connectDB();
+    const suspended = await Tenant.find({ status: "suspended" }).distinct("_id");
     const [brokers, properties, collections] = await Promise.all([
-      Broker.find().select("tenantId slug customDomain updatedAt").limit(5000).lean<IBroker[]>(),
+      Broker.find({ tenantId: { $nin: suspended } }).select("tenantId slug customDomain updatedAt").limit(5000).lean<IBroker[]>(),
       Property.find({ status: { $in: PUBLIC_STATUSES }, slug: { $exists: true } }).select("tenantId slug updatedAt").limit(45000).lean<IProperty[]>(),
       Collection.find({ isPublic: true }).select("tenantId slug updatedAt").limit(5000).lean<ICollection[]>(),
     ]);

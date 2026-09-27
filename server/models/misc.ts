@@ -1,5 +1,6 @@
 import { Schema } from "mongoose";
 import type { PlanId } from "@/lib/config/plans";
+import { DOMAIN_SETUP_STATUSES, SUBSCRIPTION_STATUSES, type DomainSetupStatus, type SubscriptionStatus } from "@/lib/domain/billing";
 import { defineModel, tenantScoped, type ObjectId } from "./_shared";
 
 /* ─────────────────────────── Media ─────────────────────────── */
@@ -52,11 +53,15 @@ export interface ISubscription {
   _id: ObjectId;
   tenantId: ObjectId;
   plan: PlanId;
-  status: "trialing" | "active" | "past_due" | "canceled";
+  status: SubscriptionStatus;
   trialEndsAt?: Date;
   currentPeriodEnd?: Date;
   provider: "mock" | "razorpay";
   providerSubscriptionId?: string;
+  /** Negotiated monthly price in ₹, set by platform admins (0 = complimentary). Unset = plan list price. */
+  priceOverride?: number;
+  /** Internal note from platform admins. Never shown to the broker. */
+  adminNotes?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -64,11 +69,13 @@ export interface ISubscription {
 const subscriptionSchema = new Schema<ISubscription>(
   {
     plan: { type: String, enum: ["free", "pro", "business"], default: "free" },
-    status: { type: String, enum: ["trialing", "active", "past_due", "canceled"], default: "active" },
+    status: { type: String, enum: SUBSCRIPTION_STATUSES, default: "active" },
     trialEndsAt: Date,
     currentPeriodEnd: Date,
     provider: { type: String, enum: ["mock", "razorpay"], default: "mock" },
     providerSubscriptionId: String,
+    priceOverride: { type: Number, min: 0 },
+    adminNotes: { type: String, trim: true, maxlength: 2000 },
   },
   { timestamps: true },
 );
@@ -115,6 +122,12 @@ export interface IDomain {
   verificationToken: string;
   verifiedAt?: Date;
   lastCheckedAt?: Date;
+  /** Ops workflow (adding the hostname to our hosting). Missing on domains created before it existed. */
+  setupStatus?: DomainSetupStatus;
+  /** Reason shown to the broker when a request is rejected. */
+  rejectionReason?: string;
+  setupUpdatedAt?: Date;
+  removalRequestedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -126,10 +139,15 @@ const domainSchema = new Schema<IDomain>(
     verificationToken: { type: String, required: true },
     verifiedAt: Date,
     lastCheckedAt: Date,
+    setupStatus: { type: String, enum: DOMAIN_SETUP_STATUSES, default: "requested" },
+    rejectionReason: { type: String, trim: true, maxlength: 500 },
+    setupUpdatedAt: Date,
+    removalRequestedAt: Date,
   },
   { timestamps: true },
 );
 tenantScoped(domainSchema);
+domainSchema.index({ setupStatus: 1, createdAt: -1 });
 export const Domain = defineModel<IDomain>("Domain", domainSchema);
 
 /* ─────────────────────────── AuditLog ─────────────────────────── */

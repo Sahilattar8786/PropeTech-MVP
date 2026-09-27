@@ -11,7 +11,7 @@ const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").rep
 const APP_HOST = new URL(APP_URL).host.toLowerCase();
 const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN?.trim().toLowerCase() || null;
 const RESERVED_SUBDOMAINS = new Set(["www", "app", "api", "admin", "dashboard", "mail", "sites", "static", "assets"]);
-const PRIVATE_PREFIXES = ["/dashboard", "/onboarding", "/admin"];
+const PRIVATE_PREFIXES = ["/dashboard", "/onboarding", "/admin", "/suspended"];
 const SESSION_COOKIES = ["authjs.session-token", "__Secure-authjs.session-token"];
 
 const domainCache = new Map<string, { slug: string | null; expires: number }>();

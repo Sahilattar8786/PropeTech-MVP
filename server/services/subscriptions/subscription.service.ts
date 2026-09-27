@@ -7,6 +7,7 @@ import { AppError } from "@/server/lib/errors";
 import { Collection, Property, Subscription, type ISubscription } from "@/server/models";
 import { audit } from "@/server/services/audit/audit.service";
 import { getBillingProvider } from "./billing.provider";
+import { createInvoice } from "./invoice.service";
 
 export interface SubscriptionDTO {
   plan: PlanId;
@@ -39,6 +40,12 @@ export async function getSubscription(tenantId: string): Promise<SubscriptionDTO
     currentPeriodEnd: sub.currentPeriodEnd?.toISOString(),
     provider: sub.provider,
   };
+}
+
+/** Bulk form of getSubscription's lazy expiry, so platform-wide metrics don't count lapsed trials. */
+export async function expireTrials(now = new Date()) {
+  await connectDB();
+  await Subscription.updateMany({ status: "trialing", trialEndsAt: { $lt: now } }, { $set: { plan: "free", status: "active" }, $unset: { trialEndsAt: 1 } });
 }
 
 /** Whole days left in a trial, or null when not trialing. */
@@ -78,17 +85,32 @@ export async function changePlan(ctx: TenantContext, plan: PlanId): Promise<Subs
   assertCan(ctx, "billing:manage");
   await connectDB();
   const provider = getBillingProvider(env().BILLING_PROVIDER);
+  // A negotiated price (priceOverride) belongs to the plan it was agreed for, so self-serve changes drop it.
   if (plan === "free") {
     await provider.cancel({ tenantId: ctx.tenantId });
-    await Subscription.updateOne({ tenantId: ctx.tenantId }, { $set: { plan, status: "active" }, $unset: { trialEndsAt: 1, currentPeriodEnd: 1 } }, { upsert: true });
+    await Subscription.updateOne(
+      { tenantId: ctx.tenantId },
+      { $set: { plan, status: "active" }, $unset: { trialEndsAt: 1, currentPeriodEnd: 1, priceOverride: 1 } },
+      { upsert: true },
+    );
   } else {
     const result = await provider.startCheckout({ tenantId: ctx.tenantId, plan, email: ctx.email });
     if (result.type === "redirect") throw new AppError("INTEGRATION", "Redirect-based checkout is not wired up yet");
     await Subscription.updateOne(
       { tenantId: ctx.tenantId },
-      { $set: { plan, status: "active", currentPeriodEnd: result.periodEnd, provider: provider.name }, $unset: { trialEndsAt: 1 } },
+      { $set: { plan, status: "active", currentPeriodEnd: result.periodEnd, provider: provider.name }, $unset: { trialEndsAt: 1, priceOverride: 1 } },
       { upsert: true },
     );
+    await createInvoice({
+      tenantId: ctx.tenantId,
+      plan,
+      amount: PLANS[plan].priceMonthly,
+      status: "paid",
+      provider: provider.name,
+      paidAt: new Date(),
+      periodStart: new Date(),
+      periodEnd: result.periodEnd,
+    });
   }
   await audit({ tenantId: ctx.tenantId, userId: ctx.userId }, "subscription.plan_changed", { type: "subscription" }, { plan });
   return getSubscription(ctx.tenantId);

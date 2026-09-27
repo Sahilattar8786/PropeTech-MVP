@@ -15,9 +15,12 @@ import { addDomainAction, removeDomainAction, verifyDomainAction } from "./actio
 
 const STATUS = {
   pending: { icon: Clock, label: "Awaiting DNS", className: "text-amber-700" },
-  verified: { icon: CheckCircle2, label: "Verified", className: "text-emerald-600" },
+  verified: { icon: CheckCircle2, label: "Live", className: "text-emerald-600" },
   failed: { icon: XCircle, label: "Not verified yet", className: "text-red-600" },
 };
+/** DNS verified, but PropFlow hasn't finished attaching the domain to hosting. */
+const CONNECTING = { icon: Clock, label: "Verified · connecting", className: "text-amber-700" };
+const DECLINED = { icon: XCircle, label: "Declined", className: "text-red-600" };
 
 export function DomainManager({ domains }: { domains: DomainDTO[] }) {
   const router = useRouter();
@@ -61,7 +64,9 @@ export function DomainManager({ domains }: { domains: DomainDTO[] }) {
       </form>
 
       {domains.map((d) => {
-        const status = STATUS[d.status];
+        const rejected = d.setupStatus === "rejected";
+        const live = d.status === "verified" && d.setupStatus === "configured";
+        const status = rejected ? DECLINED : d.status === "verified" && !live ? CONNECTING : STATUS[d.status];
         return (
           <section key={d.id} className="rounded-2xl border bg-card p-5 shadow-soft sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -72,7 +77,18 @@ export function DomainManager({ domains }: { domains: DomainDTO[] }) {
                 <status.icon className="size-4" /> {status.label}
               </span>
             </div>
-            {d.status !== "verified" && (
+            {rejected ? (
+              <p className="mt-3 rounded-lg bg-red-50 px-3 py-2.5 text-sm text-red-800">
+                {d.rejectionReason ?? "This domain request was declined."} Remove it to try a different domain, or contact support.
+              </p>
+            ) : (
+              d.setupStatus === "requested" && (
+                <p className="mt-3 rounded-lg bg-surface px-3 py-2.5 text-sm text-muted-foreground">
+                  Our team is connecting this domain to PropFlow&apos;s servers. It goes live once that&apos;s done and your DNS is verified — you can add the records below in the meantime.
+                </p>
+              )
+            )}
+            {d.status !== "verified" && !rejected && (
               <div className="mt-4 overflow-x-auto">
                 <table className="w-full min-w-[480px] text-left text-sm">
                   <thead className="text-xs text-muted-foreground">
@@ -95,7 +111,7 @@ export function DomainManager({ domains }: { domains: DomainDTO[] }) {
               </div>
             )}
             <div className="mt-4 flex gap-2">
-              {d.status !== "verified" && (
+              {d.status !== "verified" && !rejected && (
                 <Button size="sm" onClick={() => run(d.id, () => verifyDomainAction(d.id), "Checked DNS records")} disabled={pending && busyId === d.id}>
                   {pending && busyId === d.id ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />} Verify
                 </Button>

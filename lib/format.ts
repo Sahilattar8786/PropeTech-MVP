@@ -36,6 +36,11 @@ export function formatDate(value: string | Date): string {
   return new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" }).format(new Date(value));
 }
 
+/** Billing dates (renewals, trials, payments) are IST calendar days wherever the page is rendered. */
+export function formatDateIST(value: string | Date): string {
+  return new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" }).format(new Date(value));
+}
+
 export function formatDateTime(value: string | Date): string {
   return new Intl.DateTimeFormat("en-IN", {
     day: "numeric",

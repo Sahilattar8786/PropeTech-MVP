@@ -6,6 +6,7 @@ import { logger } from "@/server/lib/logger";
 import { checkRateLimit } from "@/server/lib/rate-limit";
 import { WhatsAppConversation, WhatsAppMessage, type IBroker, type WhatsAppMessageType } from "@/server/models";
 import { trackEvent } from "@/server/services/analytics/track";
+import { isTenantSuspended } from "@/server/services/tenants/tenant-status.service";
 import { findBrokerBySender, redeemConnectCode } from "./connection.service";
 import { scheduleConversationBatch } from "./whatsapp-message.service";
 import { connectedMessage, helpMessage, unknownSenderMessage } from "./whatsapp-template.service";
@@ -106,7 +107,11 @@ async function handleInboundMessage(message: InboundMessage, businessNumber: str
   const text = message.text?.body ?? message.image?.caption ?? message.video?.caption ?? message.document?.caption;
   const broker = await findBrokerBySender(from);
 
-  if (broker) return storeTenantMessage(broker, message, { from, businessNumber, contactName, text });
+  if (broker) {
+    // Suspended workspaces keep their data but stop accepting new properties.
+    if (await isTenantSuspended(String(broker.tenantId))) return "ignored" as const;
+    return storeTenantMessage(broker, message, { from, businessNumber, contactName, text });
+  }
 
   // Unknown number: the only thing it may do is redeem a connect code.
   const connected = await tryConnect(from, text);
