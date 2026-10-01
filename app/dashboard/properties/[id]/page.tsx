@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ChevronLeft, ExternalLink, Eye, Hash, Users } from "lucide-react";
+import { Clapperboard, ChevronLeft, ExternalLink, Eye, Hash, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/shared/badges";
 import { PageHeader } from "@/components/shared/page-header";
@@ -57,6 +57,13 @@ export default async function PropertyDetailPage({ params, searchParams }: PageP
         actions={
           <>
             <StatusControl propertyId={property.id} status={property.status} />
+            {property.images.length > 0 && (
+              <Button asChild variant="outline" className="h-9">
+                <Link href={`/dashboard/properties/${property.id}/reel`}>
+                  <Clapperboard className="size-4" /> Create Reel
+                </Link>
+              </Button>
+            )}
             {publicUrl && (
               <>
                 <Button asChild variant="outline" className="h-9">

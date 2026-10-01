@@ -15,6 +15,7 @@ import {
   type PropertyStatus,
   type PropertyType,
 } from "@/lib/domain/property";
+import type { ReelDraft } from "@/lib/reels/reel-spec";
 import { defineModel, tenantScoped, type ObjectId } from "./_shared";
 
 export interface IProperty {
@@ -57,6 +58,8 @@ export interface IProperty {
     updatedAt?: Date;
   };
   collectionIds: ObjectId[];
+  /** Saved Instagram Reel edits (slide titles, caption). */
+  reel?: ReelDraft & { updatedAt?: Date };
   views: number;
   whatsappClicks: number;
   createdBy?: ObjectId;
@@ -129,6 +132,19 @@ const propertySchema = new Schema<IProperty>(
       updatedAt: Date,
     },
     collectionIds: [{ type: Schema.Types.ObjectId, ref: "Collection" }],
+    reel: {
+      type: new Schema(
+        {
+          intro: { image: String, title: String, subtitle: String },
+          slides: [new Schema({ image: String, title: String }, { _id: false })],
+          outro: { title: String, subtitle: String },
+          caption: String,
+          secondsPerSlide: Number,
+          updatedAt: Date,
+        },
+        { _id: false },
+      ),
+    },
     views: { type: Number, default: 0 },
     whatsappClicks: { type: Number, default: 0 },
     createdBy: { type: Schema.Types.ObjectId, ref: "User" },

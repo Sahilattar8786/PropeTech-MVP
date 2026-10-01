@@ -64,6 +64,15 @@ export function toPropertyDTO(doc: PropertyLike): PropertyDTO {
         }
       : undefined,
     collectionIds: (doc.collectionIds ?? []).map(String),
+    reel: doc.reel?.intro?.image
+      ? {
+          intro: { image: doc.reel.intro.image, title: doc.reel.intro.title ?? "", subtitle: doc.reel.intro.subtitle ?? "" },
+          slides: (doc.reel.slides ?? []).map((s) => ({ image: s.image, title: s.title ?? "" })),
+          outro: { title: doc.reel.outro?.title ?? "", subtitle: doc.reel.outro?.subtitle ?? "" },
+          caption: doc.reel.caption ?? "",
+          secondsPerSlide: doc.reel.secondsPerSlide ?? 2.5,
+        }
+      : undefined,
     views: doc.views ?? 0,
     whatsappClicks: doc.whatsappClicks ?? 0,
     reviewedAt: iso(doc.reviewedAt),

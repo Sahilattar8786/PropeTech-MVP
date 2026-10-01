@@ -2,6 +2,15 @@ import { AwsClient } from "aws4fetch";
 import { env } from "@/server/lib/env";
 import type { StorageDriver } from "./storage";
 
+/** Surfaces the provider's <Code>/<Message> (e.g. SignatureDoesNotMatch, AccessDenied) without echoing credentials. */
+async function s3Error(action: string, res: Response): Promise<Error> {
+  const body = await res.text().catch(() => "");
+  const code = body.match(/<Code>([^<]+)<\/Code>/)?.[1];
+  const message = body.match(/<Message>([^<]+)<\/Message>/)?.[1];
+  const detail = [code, message].filter(Boolean).join(": ");
+  return new Error(`S3 ${action} failed (${res.status})${detail ? ` — ${detail}` : ""}`);
+}
+
 /** S3-compatible driver (AWS S3, Cloudflare R2, MinIO) using SigV4-signed fetch requests. */
 export class S3Driver implements StorageDriver {
   private client: AwsClient;
@@ -36,19 +45,19 @@ export class S3Driver implements StorageDriver {
     // Next.js's patched fetch streams the body without Content-Length, which R2 rejects (411).
     const signed = await this.client.sign(this.objectUrl(key), { method: "PUT", body: bytes, headers });
     const res = await fetch(signed.url, { method: "PUT", headers: signed.headers, body: bytes, cache: "no-store" });
-    if (!res.ok) throw new Error(`S3 upload failed (${res.status})`);
+    if (!res.ok) throw await s3Error("upload", res);
   }
 
   async get(key: string) {
     const res = await this.client.fetch(this.objectUrl(key));
     if (res.status === 404) return null;
-    if (!res.ok) throw new Error(`S3 download failed (${res.status})`);
+    if (!res.ok) throw await s3Error("download", res);
     return { body: Buffer.from(await res.arrayBuffer()), contentType: res.headers.get("content-type") ?? "application/octet-stream" };
   }
 
   async delete(key: string) {
     const res = await this.client.fetch(this.objectUrl(key), { method: "DELETE" });
-    if (!res.ok && res.status !== 404) throw new Error(`S3 delete failed (${res.status})`);
+    if (!res.ok && res.status !== 404) throw await s3Error("delete", res);
   }
 
   publicUrl(key: string) {
