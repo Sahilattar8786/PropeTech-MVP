@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { siteConfig } from "@/lib/config/site";
 import { prepareImageForUpload } from "@/lib/image-compress";
 import { formatPhone } from "@/lib/phone";
 
@@ -35,7 +36,7 @@ export function WhatsAppSimulator({ senderNumbers, registeredNumber, connectCode
       const res = await fetch("/api/dev/whatsapp/simulate", { method: "POST", body: form });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body?.error?.message ?? "Couldn't send");
-      toast.success(`Sent ${body.messages} WhatsApp ${body.messages === 1 ? "message" : "messages"} to PropFlow`);
+      toast.success(`Sent ${body.messages} WhatsApp ${body.messages === 1 ? "message" : "messages"} to ${siteConfig.name}`);
       setFiles([]);
       if (!connected) setText(SAMPLE);
       router.refresh();
@@ -88,7 +89,7 @@ export function WhatsAppSimulator({ senderNumbers, registeredNumber, connectCode
             <ImagePlus className="size-4" /> Photos
           </Button>
           <Button type="button" size="sm" className="h-9 flex-1" onClick={send} disabled={sending}>
-            {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />} Send to PropFlow
+            {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />} Send to {siteConfig.name}
           </Button>
         </div>
         <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" multiple hidden onChange={(e) => { setFiles([...files, ...Array.from(e.target.files ?? [])].slice(0, 10)); e.target.value = ""; }} />

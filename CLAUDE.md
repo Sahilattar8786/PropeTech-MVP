@@ -1,8 +1,12 @@
 Updated master prompt with the real WhatsApp → AI → broker catalog workflow included.
 
-PropFlow — PropTech SaaS
+Propsora — PropTech SaaS ("Shopify for real estate")
 
 Next.js + WhatsApp + AI Property Catalog
+
+Brand: Propsora (wordmark "propsora", Google Sans SemiBold). Logo: two read-receipt ticks turned into rooftops. Colours: ink #111827, read-receipt blue #2F80ED (UI text accent #0E6CDD), surface #F5F8FF. Brand settings live in lib/config/site.ts and components/shared/logo.tsx.
+
+Environments: production = `main` branch on https://propsora.com; staging = `staging` branch on https://prop.sahilproject.ink (never indexed). See docs/deploy-production.md.
 
 Build a production-quality multi-tenant PropTech SaaS for Indian real-estate brokers.
 
@@ -57,7 +61,7 @@ The information is unstructured and difficult to manage.
 
 Solution
 
-PropFlow converts WhatsApp property messages into professional property listings.
+Propsora converts WhatsApp property messages into professional property listings.
 
 Example:
 
@@ -70,7 +74,7 @@ Semi furnished
 2 parking
 [images]
 
-PropFlow automatically:
+Propsora automatically:
 
 WhatsApp
     ↓
@@ -86,11 +90,11 @@ The broker reviews the listing and publishes it.
 
 2. Core Product Promise
 
-Turn your WhatsApp property messages into a professional property catalog.
+Shopify for real estate. Launch your property website in minutes.
 
-Secondary positioning:
+How it works (secondary positioning):
 
-Your WhatsApp property inventory, organized and powered by AI.
+Turn your WhatsApp property messages into a professional property catalog. Your WhatsApp property inventory, organized and powered by AI.
 
 ⸻
 
@@ -195,13 +199,17 @@ Build a premium PropTech SaaS landing page.
 
 Hero
 
+Eyebrow:
+
+Shopify for real estate · Built for Indian brokers
+
 Headline:
 
-Turn WhatsApp Property Messages Into Professional Listings.
+Launch your property website in minutes.
 
 Subheading:
 
-Send property details and images on WhatsApp. PropFlow uses AI to organize them into beautiful, shareable property listings for your real-estate business.
+Send property details and photos on WhatsApp. Propsora's AI turns them into professional listings on your own branded website, ready to share, with enquiries straight to your WhatsApp.
 
 Primary CTA:
 
@@ -267,7 +275,7 @@ Semi Furnished
 
 Then animate into:
 
-PropFlow
+Propsora
 ✓ Message received
 ✓ Images processed
 ✓ Property detected
@@ -352,7 +360,7 @@ Dashboard
 
 Example:
 
-rehanbrokers.propflow.in
+rehanbrokers.propsora.com
 
 ⸻
 
@@ -739,7 +747,7 @@ Track publish event
 
 Example:
 
-rehanbrokers.propflow.in/property/3bhk-whitefield
+rehanbrokers.propsora.com/property/3bhk-whitefield
 
 ⸻
 
@@ -810,11 +818,11 @@ Broker can manually change status.
 
 Each broker gets:
 
-{brokerSlug}.propflow.in
+{brokerSlug}.propsora.com
 
 Example:
 
-rehanbrokers.propflow.in
+rehanbrokers.propsora.com
 
 Homepage:
 
@@ -879,7 +887,7 @@ Whitefield
 ₹1.50 Cr
 Property ID: REH-1024
 Property Link:
-https://rehanbrokers.propflow.in/property/3bhk-whitefield
+https://rehanbrokers.propsora.com/property/3bhk-whitefield
 
 When the customer clicks this CTA:
 
@@ -904,7 +912,7 @@ Investment Properties
 
 Collection URL:
 
-rehanbrokers.propflow.in/collections/whitefield
+rehanbrokers.propsora.com/collections/whitefield
 
 Allow:
 
@@ -936,7 +944,7 @@ Keep this modular so it can be enabled later.
 
 Sidebar:
 
-PropFlow
+Propsora
 Dashboard
 Properties
 Collections
@@ -1074,7 +1082,7 @@ rehanproperties.com
 
 instead of:
 
-rehanbrokers.propflow.in
+rehanbrokers.propsora.com
 
 Implement domain mapping abstraction.
 

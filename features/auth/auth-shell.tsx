@@ -13,7 +13,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
           <div className="w-full max-w-[400px]">{children}</div>
         </div>
       </div>
-      <aside className="relative hidden overflow-hidden bg-[#f3f5f2] lg:flex lg:flex-col lg:justify-center lg:p-12">
+      <aside className="relative hidden overflow-hidden bg-surface lg:flex lg:flex-col lg:justify-center lg:p-12">
         <div aria-hidden className="absolute inset-0 bg-[radial-gradient(60%_50%_at_70%_20%,var(--brand-soft),transparent)]" />
         <div className="relative mx-auto w-full max-w-sm">
           <div className="ml-6 w-64 rounded-2xl rounded-tr-sm bg-whatsapp-bubble p-3 text-[13px] leading-snug shadow-soft">

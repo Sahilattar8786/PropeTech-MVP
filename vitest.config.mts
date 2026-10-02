@@ -6,6 +6,6 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],
-    env: { DATABASE_URL: "mongodb://127.0.0.1:27017/propflow-test", NEXTAUTH_SECRET: "test-secret" },
+    env: { DATABASE_URL: "mongodb://127.0.0.1:27017/propsora-test", NEXTAUTH_SECRET: "test-secret" },
   },
 });

@@ -8,6 +8,14 @@ export function createRedisConnection(url: string) {
   return new IORedis(url, { maxRetriesPerRequest: null });
 }
 
+/**
+ * Redis key namespace for every queue (BullMQ's default is "bull"). Staging sets its own,
+ * e.g. QUEUE_PREFIX=staging, so it can share a Redis instance without its worker taking production jobs.
+ */
+export function queuePrefix(): string {
+  return process.env.QUEUE_PREFIX?.trim() || "bull";
+}
+
 export class BullMQDriver implements QueueDriver {
   private queues = new Map<QueueName, Queue>();
   private connection: IORedis;
@@ -19,7 +27,7 @@ export class BullMQDriver implements QueueDriver {
   private queue(name: QueueName): Queue {
     let queue = this.queues.get(name);
     if (!queue) {
-      queue = new Queue(name, { connection: this.connection });
+      queue = new Queue(name, { connection: this.connection, prefix: queuePrefix() });
       this.queues.set(name, queue);
     }
     return queue;

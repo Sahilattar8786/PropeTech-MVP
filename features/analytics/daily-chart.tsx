@@ -18,7 +18,7 @@ const METRICS: { key: Metric; label: string; title: string }[] = [
 ];
 
 /** Validated single-series mark colour (dataviz validator: lightness, chroma, contrast pass). */
-const MARK = "#0d9488";
+const MARK = "#2F80ED";
 const HEIGHT = 200;
 const PAD = { top: 16, right: 8, bottom: 28, left: 36 };
 

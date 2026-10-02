@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { canTransition, pipelineStateOf } from "@/lib/domain/property";
+import { getDeploymentStage } from "@/lib/config/site";
 import { formatPrice } from "@/lib/format";
 import { normalizePhone } from "@/lib/phone";
 import { brokerSlugFromName, isValidBrokerSlug } from "@/lib/slug";
@@ -22,10 +23,10 @@ describe("WhatsApp CTA (spec §26)", () => {
         propertyType: "apartment",
         propertyId: "REH-1024",
       },
-      "https://rehanbrokers.propflow.in/property/3bhk-whitefield",
+      "https://rehanbrokers.propsora.com/property/3bhk-whitefield",
     );
     expect(message).toBe(
-      "Hi Rehan,\nI'm interested in:\nPremium 3 BHK Apartment in Whitefield\nWhitefield\n₹1.50 Cr\nProperty ID: REH-1024\nProperty Link:\nhttps://rehanbrokers.propflow.in/property/3bhk-whitefield",
+      "Hi Rehan,\nI'm interested in:\nPremium 3 BHK Apartment in Whitefield\nWhitefield\n₹1.50 Cr\nProperty ID: REH-1024\nProperty Link:\nhttps://rehanbrokers.propsora.com/property/3bhk-whitefield",
     );
     const url = buildWhatsAppUrl("+91 98765 43210", message);
     expect(url.startsWith("https://wa.me/919876543210?text=")).toBe(true);
@@ -114,5 +115,30 @@ describe("WhatsApp webhook security", () => {
     );
     expect(payload.entry[0]!.changes[0]!.value.messages![0]!.image!.id).toBe("m1");
     expect(() => parseWebhookPayload("not json")).toThrow();
+  });
+});
+
+describe("Deployment stage (production = propsora.com, staging = prop.sahilproject.ink)", () => {
+  const withEnv = (vars: Record<string, string | undefined>, fn: () => void) => {
+    const saved = Object.fromEntries(Object.keys(vars).map((k) => [k, process.env[k]]));
+    for (const [k, v] of Object.entries(vars)) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+    try {
+      fn();
+    } finally {
+      for (const [k, v] of Object.entries(saved)) {
+        if (v === undefined) delete process.env[k];
+        else process.env[k] = v;
+      }
+    }
+  };
+
+  it("uses APP_ENV when set, otherwise maps Vercel environments", () => {
+    withEnv({ APP_ENV: "staging", VERCEL_ENV: "production" }, () => expect(getDeploymentStage()).toBe("staging"));
+    withEnv({ APP_ENV: undefined, VERCEL_ENV: "production" }, () => expect(getDeploymentStage()).toBe("production"));
+    withEnv({ APP_ENV: undefined, VERCEL_ENV: "preview" }, () => expect(getDeploymentStage()).toBe("staging"));
+    withEnv({ APP_ENV: "bogus", VERCEL_ENV: "preview" }, () => expect(getDeploymentStage()).toBe("staging"));
   });
 });

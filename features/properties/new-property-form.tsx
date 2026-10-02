@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { FormAlert, FormField } from "@/components/shared/form-field";
 import { WhatsAppIcon } from "@/components/shared/whatsapp-icon";
+import { siteConfig } from "@/lib/config/site";
 import { createFromTextSchema, type CreateFromTextInput } from "@/lib/validation/property";
 import { cn } from "@/lib/utils";
 import { createFromTextAction, createManualDraftAction } from "./actions";
@@ -102,7 +103,7 @@ export function NewPropertyForm() {
           <p className="flex items-center gap-2 text-sm font-semibold">
             <WhatsAppIcon className="size-4 text-whatsapp" /> Even faster on WhatsApp
           </p>
-          <p className="mt-2 text-sm text-muted-foreground">Send details and photos to your PropFlow WhatsApp number. Drafts appear in your inbox automatically.</p>
+          <p className="mt-2 text-sm text-muted-foreground">Send details and photos to your {siteConfig.name} WhatsApp number. Drafts appear in your inbox automatically.</p>
           <Button asChild variant="outline" size="sm" className="mt-4 h-8">
             <Link href="/dashboard/settings/whatsapp">Set up WhatsApp</Link>
           </Button>

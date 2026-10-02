@@ -1,6 +1,11 @@
-# PropFlow — WhatsApp → AI → Property Listings
+# Propsora — Shopify for real estate
 
-Multi-tenant SaaS for Indian real-estate brokers. Brokers send property details and photos on WhatsApp; PropFlow turns them into draft listings with AI, the broker reviews and publishes, and customers enquire back on WhatsApp with the property's context.
+Launch your property website in minutes. Multi-tenant SaaS for Indian real-estate brokers. Brokers send property details and photos on WhatsApp; Propsora turns them into draft listings with AI, the broker reviews and publishes them on their own website, and customers enquire back on WhatsApp with the property's context.
+
+| Environment | Branch | URL |
+|---|---|---|
+| Production | `main` | https://propsora.com |
+| Staging | `staging` | https://prop.sahilproject.ink (noindex, "Staging" badge) |
 
 ```
 Broker WhatsApp → Webhook → Queue → Media → AI extraction & enrichment → Draft
@@ -19,7 +24,7 @@ Requirements: Node ≥ 22.9, MongoDB. Redis, WhatsApp, OpenAI and S3 are optiona
 cp .env.example .env.local        # set DATABASE_URL and NEXTAUTH_SECRET (openssl rand -base64 32)
 npm install
 npm run dev                       # http://localhost:3000
-npm run seed                      # optional: demo workspace (demo@propflow.local / demo12345)
+npm run seed                      # optional: demo workspace (demo@propsora.local / demo12345)
 ```
 
 Without extra credentials the app runs fully locally:
@@ -39,7 +44,7 @@ Without extra credentials the app runs fully locally:
 | `npm run dev` / `build` / `start` | Next.js |
 | `npm run worker` | BullMQ workers for all queues (needs `REDIS_URL`) |
 | `npm run seed` | Demo broker, properties and a collection via the real services |
-| `npm run env:push` | Push `.env.production` to Vercel (and `--railway` for the worker) in one go |
+| `npm run env:push` | Push `.env.production` to Vercel (and `--railway` for the worker) in one go; `-- --staging` pushes `.env.staging` to Vercel Preview |
 | `npm test` | Vitest: AI extraction & grounding, WhatsApp link, webhook security, lifecycle, tenant isolation (needs local MongoDB) |
 | `npm run typecheck` / `lint` | TypeScript / ESLint |
 
@@ -82,11 +87,11 @@ proxy.ts             subdomain / custom-domain rewrites + optimistic auth redire
 
 ## Production notes
 
-**Step-by-step go-live guide:** [docs/deploy-production.md](docs/deploy-production.md) (Vercel, Railway worker via `Dockerfile.worker`, Atlas, Cloudflare R2/DNS, Google login, WhatsApp, GitHub Actions). Custom broker domains: [docs/custom-domains.md](docs/custom-domains.md).
+**Step-by-step go-live guide:** [docs/deploy-production.md](docs/deploy-production.md) (production and staging environments, moving to propsora.com, Vercel, Railway worker via `Dockerfile.worker`, Atlas, Cloudflare R2/DNS, Google login, WhatsApp, GitHub Actions). Custom broker domains: [docs/custom-domains.md](docs/custom-domains.md).
 
-- Set `REDIS_URL` and run `npm run worker` as a long-running process. The in-process queue driver is for development; serverless platforms don't keep timers alive after a response, so WhatsApp processing needs the worker there.
+- Set `REDIS_URL` and run `npm run worker` as a long-running process. Staging needs its own Redis, or the same one with `QUEUE_PREFIX=staging`. The in-process queue driver is for development; serverless platforms don't keep timers alive after a response, so WhatsApp processing needs the worker there.
 - Use `STORAGE_DRIVER=s3` on serverless/ephemeral hosts (local disk isn't persistent) and set `S3_PUBLIC_URL` so `next/image` allows the bucket/CDN host.
 - Set `WHATSAPP_APP_SECRET` (required in production for the Meta provider) and `WHATSAPP_VERIFY_TOKEN`; point the Meta webhook at `{APP_URL}/api/webhooks/whatsapp`. Outside the 24-hour window the broker notification uses the `property_draft_ready` template, which must be approved in Meta.
-- Broker subdomains need a wildcard DNS record and `NEXT_PUBLIC_ROOT_DOMAIN`. Custom domains are verified with a TXT record (`_propflow.<domain>`) and resolved by the proxy.
+- Broker subdomains need a wildcard DNS record and `NEXT_PUBLIC_ROOT_DOMAIN`. Custom domains are verified with a TXT record (`_propsora.<domain>`) and resolved by the proxy.
 - The rate limiter is in-memory per instance; move it to Redis when running multiple instances.
 - `ADMIN_EMAILS` grants access to `/admin` (platform overview).

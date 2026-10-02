@@ -19,7 +19,8 @@ export interface BrokerDTO {
   propertyIdPrefix: string;
 }
 
-export const DEFAULT_BRAND_COLOR = "#0f766e";
+/** Propsora blue at AA text contrast (the UI `--brand`); brokers on custom-branding plans pick their own. */
+export const DEFAULT_BRAND_COLOR = "#0E6CDD";
 
 export function brokerFirstName(broker: Pick<BrokerDTO, "contactName" | "businessName">): string {
   return broker.contactName?.split(/\s+/)[0] || broker.businessName;

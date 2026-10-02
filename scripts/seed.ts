@@ -13,7 +13,7 @@ import { createDraftFromText, publishProperty } from "@/server/services/properti
 import { registerBroker } from "@/server/services/tenants/registration.service";
 import { propertyToFormValues } from "@/lib/validation/property";
 
-const EMAIL = process.env.SEED_EMAIL ?? "demo@propflow.local";
+const EMAIL = process.env.SEED_EMAIL ?? "demo@propsora.local";
 const PASSWORD = process.env.SEED_PASSWORD ?? "demo12345";
 
 const LISTINGS = [

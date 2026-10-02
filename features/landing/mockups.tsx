@@ -1,7 +1,9 @@
-import { BadgeCheck, CheckCheck, MapPin, Maximize2, BedDouble, Car, ChevronLeft, MoreVertical, Phone } from "lucide-react";
+import { BadgeCheck, CheckCheck, Lock, MapPin, Maximize2, BedDouble, Car, ChevronLeft, MoreVertical, Phone } from "lucide-react";
 import { PropertyIllustration, type IllustrationVariant } from "@/components/shared/property-illustration";
 import { WhatsAppIcon } from "@/components/shared/whatsapp-icon";
-import { LogoMark } from "@/components/shared/logo";
+import { AppIcon, BRAND_BLUE } from "@/components/shared/logo";
+import { siteConfig } from "@/lib/config/site";
+import { brokerDisplayHost } from "@/lib/urls";
 import { cn } from "@/lib/utils";
 import { sampleBroker, sampleListing, sampleMessage } from "./content";
 
@@ -25,13 +27,11 @@ export function PhoneFrame({ children, className }: { children: React.ReactNode;
   );
 }
 
-export function ChatHeader({ title = "PropFlow", subtitle = "Business account" }: { title?: string; subtitle?: string }) {
+export function ChatHeader({ title = siteConfig.name, subtitle = "Business account" }: { title?: string; subtitle?: string }) {
   return (
     <div className="flex items-center gap-2 bg-[#075e54] px-3 py-2.5 text-white">
       <ChevronLeft className="size-4 opacity-80" />
-      <div className="flex size-7 items-center justify-center rounded-full bg-white/95">
-        <LogoMark className="size-5" />
-      </div>
+      <AppIcon className="size-7 rounded-full ring-1 ring-white/30" />
       <div className="min-w-0 flex-1 leading-tight">
         <p className="flex items-center gap-1 text-[13px] font-semibold">
           {title} <BadgeCheck className="size-3.5 text-[#25d366]" />
@@ -63,16 +63,22 @@ export function BrokerMessageBubble({ compact = false }: { compact?: boolean }) 
           </p>
         ))}
         <p className="mt-0.5 flex items-center justify-end gap-1 text-[10px] text-zinc-500">
-          10:42 <CheckCheck className="size-3 text-sky-500" />
+          10:42 <CheckCheck className="size-3" style={{ color: BRAND_BLUE }} />
         </p>
       </div>
     </div>
   );
 }
 
-export function ListingCardMock({ className, withButton = true }: { className?: string; withButton?: boolean }) {
+export function ListingCardMock({ className, withButton = true, url }: { className?: string; withButton?: boolean; url?: string }) {
   return (
     <div className={cn("overflow-hidden rounded-2xl border bg-card shadow-lifted", className)}>
+      {url && (
+        <div className="flex items-center gap-1.5 border-b bg-surface px-3 py-1.5 text-[10px] text-muted-foreground">
+          <Lock className="size-2.5 shrink-0" aria-hidden />
+          <span className="truncate font-medium">{url}</span>
+        </div>
+      )}
       <div className="relative aspect-[16/10]">
         <PropertyIllustration variant="tower" tone={0} />
         <span className="absolute top-3 left-3 rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-medium text-zinc-700 backdrop-blur">For Sale</span>
@@ -129,4 +135,6 @@ export function BrowserFrame({ url, children, className }: { url: string; childr
   );
 }
 
-export const sampleListingUrl = `${sampleBroker.subdomain}.propflow.in/property/${sampleListing.slug}`;
+/** The sample broker's site on this deployment's real URL scheme (subdomain when NEXT_PUBLIC_ROOT_DOMAIN is set). */
+export const sampleSiteHost = brokerDisplayHost({ slug: sampleBroker.subdomain });
+export const sampleListingUrl = `${sampleSiteHost}/property/${sampleListing.slug}`;

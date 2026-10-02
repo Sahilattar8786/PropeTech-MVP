@@ -1,13 +1,14 @@
 name: CI / CD
 
-# Every pull request and push to main runs the checks.
+# Every pull request and every push to main (production, propsora.com) or
+# staging (prop.sahilproject.ink) runs the checks.
 # Deploy jobs are opt-in (repository variables), so they never double-deploy
 # alongside Vercel's / Railway's own GitHub integrations. See docs/deploy-production.md.
 
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, staging]
   workflow_dispatch:
 
 concurrency:
