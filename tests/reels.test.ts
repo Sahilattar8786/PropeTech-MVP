@@ -19,7 +19,7 @@ const property = {
 
 describe("Instagram Reel defaults", () => {
   it("puts the title on the cover photo and one slide per remaining photo", () => {
-    const reel = buildDefaultReel(property, broker, "https://rehan.propflow.in/property/3bhk-whitefield");
+    const reel = buildDefaultReel(property, broker, "https://rehan.propsora.com/property/3bhk-whitefield");
     expect(reel.intro).toEqual({ image: property.images[0], title: property.title, subtitle: "₹1.50 Cr · Whitefield" });
     expect(reel.slides.map((s) => s.image)).toEqual(property.images.slice(1));
     expect(reelDraftSchema.safeParse(reel).success).toBe(true);
@@ -35,11 +35,11 @@ describe("Instagram Reel defaults", () => {
   });
 
   it("writes a caption with the facts, contact, link and hashtags within Instagram's limit", () => {
-    const { caption } = buildDefaultReel(property, broker, "https://rehan.propflow.in/property/3bhk-whitefield");
+    const { caption } = buildDefaultReel(property, broker, "https://rehan.propsora.com/property/3bhk-whitefield");
     expect(caption).toContain("📍 Whitefield, Bangalore");
     expect(caption).toContain("💰 ₹1.50 Cr");
     expect(caption).toContain("+91 98765 43210");
-    expect(caption).toContain("https://rehan.propflow.in/property/3bhk-whitefield");
+    expect(caption).toContain("https://rehan.propsora.com/property/3bhk-whitefield");
     expect(caption).toMatch(/#Whitefield #BangaloreRealEstate .*#3BHK .*#RehanProperties/);
     const long = buildDefaultReel({ ...property, description: "x ".repeat(3000) }, broker);
     expect(long.caption.length).toBeLessThanOrEqual(INSTAGRAM_CAPTION_LIMIT);

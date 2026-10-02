@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { PropertyImage } from "@/components/shared/property-image";
 import { StatCard } from "@/features/dashboard/stat-card";
 import { pipelineStateOf } from "@/lib/domain/property";
+import { siteConfig } from "@/lib/config/site";
 import { formatNumber, formatRelative, locationLabel, priceLabel } from "@/lib/format";
 import { brokerBaseUrl } from "@/lib/urls";
 import { requireTenantContext } from "@/server/auth/session";
@@ -41,7 +42,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
   return (
     <>
       <PageHeader
-        title={welcome === "1" ? `Welcome to PropFlow, ${firstName}` : `Good to see you, ${firstName}`}
+        title={welcome === "1" ? `Welcome to ${siteConfig.name}, ${firstName}` : `Good to see you, ${firstName}`}
         description={welcome === "1" ? "Your broker workspace and website are ready." : "Here's what's happening with your inventory."}
         actions={
           <>

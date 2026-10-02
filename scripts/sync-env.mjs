@@ -9,8 +9,13 @@
  *   npm run env:push                  # push to Vercel (then redeploy)
  *   npm run env:push -- --railway     # also update the Railway worker service
  *
- * Options: --file <path>  --environment production|preview  --project <vercel project>
- *          --railway-service <name> (default "worker")
+ * Staging (the `staging` branch on prop.sahilproject.ink) lives in Vercel's Preview environment:
+ *   cp .env.example .env.staging      # STAGING values — its own database and Redis (or QUEUE_PREFIX)
+ *   npm run env:push -- --staging     # = --environment preview --file .env.staging (+ Railway env "staging")
+ *
+ * Options: --file <path>  --environment production|preview  --git-branch <branch> (preview only)
+ *          --project <vercel project>  --railway-service <name> (default "worker")
+ *          --railway-environment <name> (Railway environment, default: the linked one; "staging" with --staging)
  * Values are passed on stdin, never on the command line, and are never printed.
  */
 import { existsSync, readFileSync } from "node:fs";
@@ -23,10 +28,13 @@ const option = (name, fallback) => {
   return i >= 0 && args[i + 1] && !args[i + 1].startsWith("--") ? args[i + 1] : fallback;
 };
 
-const file = option("file", ".env.production");
-const environment = option("environment", "production");
+const staging = has("staging");
+const file = option("file", staging ? ".env.staging" : ".env.production");
+const environment = option("environment", staging ? "preview" : "production");
+const gitBranch = option("git-branch");
 const project = option("project");
 const railwayService = option("railway-service", "worker");
+const railwayEnvironment = option("railway-environment", staging ? "staging" : undefined);
 const dryRun = has("dry-run");
 const toRailway = has("railway");
 
@@ -66,7 +74,18 @@ if (missing.length) fail(`${file} is missing: ${missing.join(", ")}`);
 if (environment === "production") {
   const bad = Object.entries(FORBIDDEN_IN_PRODUCTION).filter(([k, v]) => vars.get(k) === v);
   if (bad.length) fail(`Not allowed in production: ${bad.map(([k, v]) => `${k}=${v}`).join(", ")}. Remove from ${file}.`);
-  if (/localhost|127\.0\.0\.1/.test(vars.get("NEXT_PUBLIC_APP_URL"))) fail("NEXT_PUBLIC_APP_URL points to localhost — use your live https:// URL.");
+}
+if (environment !== "development" && /localhost|127\.0\.0\.1/.test(vars.get("NEXT_PUBLIC_APP_URL"))) fail("NEXT_PUBLIC_APP_URL points to localhost — use your live https:// URL.");
+
+// Production and staging must never share a database or a job queue: a staging worker on
+// production's queue would process production jobs against the staging database.
+const otherFile = environment === "production" ? ".env.staging" : ".env.production";
+if (existsSync(otherFile) && otherFile !== file) {
+  const other = parseEnv(readFileSync(otherFile, "utf8"));
+  const queueKey = (v) => `${v.get("REDIS_URL") ?? ""}|${v.get("QUEUE_PREFIX") || "bull"}`;
+  if (vars.get("DATABASE_URL") === other.get("DATABASE_URL")) fail(`${file} and ${otherFile} use the same DATABASE_URL. Give staging its own database.`);
+  if (vars.has("REDIS_URL") && queueKey(vars) === queueKey(other)) fail(`${file} and ${otherFile} share a Redis queue. Use a separate REDIS_URL, or set a different QUEUE_PREFIX (e.g. QUEUE_PREFIX=staging).`);
+  if (vars.get("NEXT_PUBLIC_APP_URL") === other.get("NEXT_PUBLIC_APP_URL")) fail(`${file} and ${otherFile} have the same NEXT_PUBLIC_APP_URL.`);
 }
 const notUrls = ["NEXT_PUBLIC_APP_URL", "S3_PUBLIC_URL", "S3_ENDPOINT", "AI_API_URL", "WHATSAPP_API_URL"].filter((k) => vars.has(k) && !/^https?:\/\//.test(vars.get(k)));
 if (notUrls.length) fail(`${notUrls.join(", ")} must start with https:// (e.g. https://media.example.com).`);
@@ -87,7 +106,8 @@ function cliError(output, secret) {
   return (message ?? "unknown error").replaceAll(secret, "***");
 }
 
-console.log(`${dryRun ? "[dry run] " : ""}${vars.size} variables from ${file} → Vercel (${environment})${project ? ` project ${project}` : ""}${toRailway ? ` + Railway (${railwayService})` : ""}\n`);
+const target = `${environment}${environment === "preview" ? `, ${gitBranch ? `branch ${gitBranch}` : "all preview branches"}` : ""}`;
+console.log(`${dryRun ? "[dry run] " : ""}${vars.size} variables from ${file} → Vercel (${target})${project ? ` project ${project}` : ""}${toRailway ? ` + Railway (${railwayService}${railwayEnvironment ? `, ${railwayEnvironment}` : ""})` : ""}\n`);
 
 let failures = 0;
 for (const [key, value] of vars) {
@@ -99,7 +119,7 @@ for (const [key, value] of vars) {
   }
   const result = spawnSync(
     "npx",
-    ["--yes", "vercel", "env", "add", key, environment, "--force", "--yes", "--non-interactive", sensitive ? "--sensitive" : "--no-sensitive", ...(project ? ["--project", project] : [])],
+    ["--yes", "vercel", "env", "add", key, environment, "--force", "--yes", "--non-interactive", sensitive ? "--sensitive" : "--no-sensitive", ...(gitBranch ? ["--git-branch", gitBranch] : []), ...(project ? ["--project", project] : [])],
     { input: value, encoding: "utf8" },
   );
   if (result.status === 0) console.log(`  ✓ ${label}`);
@@ -112,7 +132,7 @@ for (const [key, value] of vars) {
 if (toRailway && !dryRun) {
   const workerVars = [...vars].filter(([k]) => !WEB_ONLY.has(k));
   const setArgs = workerVars.flatMap(([k, v]) => ["--set", `${k}=${v}`]);
-  const result = spawnSync("npx", ["--yes", "@railway/cli", "variables", "--service", railwayService, "--skip-deploys", ...setArgs], { encoding: "utf8" });
+  const result = spawnSync("npx", ["--yes", "@railway/cli", "variables", "--service", railwayService, ...(railwayEnvironment ? ["--environment", railwayEnvironment] : []), "--skip-deploys", ...setArgs], { encoding: "utf8" });
   if (result.status === 0) console.log(`\n  ✓ Railway (${railwayService}): ${workerVars.length} variables`);
   else {
     failures++;

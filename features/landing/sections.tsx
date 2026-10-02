@@ -1,9 +1,11 @@
 import Link from "next/link";
 import {
   ArrowRight,
+  BarChart3,
   BedDouble,
   Building2,
   Check,
+  Clapperboard,
   Copy,
   FolderOpen,
   Globe,
@@ -22,12 +24,12 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/shared/badges";
 import { PropertyIllustration } from "@/components/shared/property-illustration";
 import { WhatsAppIcon } from "@/components/shared/whatsapp-icon";
-import { LogoMark } from "@/components/shared/logo";
+import { AppIcon, Logo } from "@/components/shared/logo";
 import { PLANS, PLAN_IDS } from "@/lib/config/plans";
 import { siteConfig } from "@/lib/config/site";
 import { cn } from "@/lib/utils";
 import { dashboardMetrics, dashboardRows, sampleBroker, sampleCollections, sampleListing } from "./content";
-import { BrowserFrame, SectionHeading, sampleListingUrl } from "./mockups";
+import { BrowserFrame, SectionHeading, sampleListingUrl, sampleSiteHost } from "./mockups";
 import { WhatsAppDemo } from "./whatsapp-demo";
 
 /* ─────────────────────────── Problem ─────────────────────────── */
@@ -59,6 +61,58 @@ export function ProblemSection() {
   );
 }
 
+/* ─────────────────────────── Platform ─────────────────────────── */
+
+const PLATFORM = [
+  { icon: Globe, title: "Your own website", body: `A branded site at ${sampleSiteHost} with every listing and collection. Connect your own domain on Business.` },
+  { icon: WhatsAppIcon, title: "Listings from WhatsApp", body: "Send details and photos the way you do today. AI drafts the listing, and you approve it before it goes live." },
+  { icon: Layers, title: "Collections", body: "Curated shortlists like “Whitefield under ₹1.5 Cr”, shared as a single link." },
+  { icon: MessagesSquare, title: "WhatsApp enquiries", body: "A one-tap enquiry on every listing tells you exactly which property the customer means." },
+  { icon: BarChart3, title: "Leads & analytics", body: "See views, WhatsApp clicks and leads for every property in one dashboard." },
+  { icon: Clapperboard, title: "Listing reels", body: "Turn listing photos into a vertical video for Instagram and WhatsApp Status." },
+];
+
+export function PlatformSection() {
+  return (
+    <section id="features" className="scroll-mt-20 py-20 sm:py-28">
+      <div className="container-page">
+        <SectionHeading
+          eyebrow={siteConfig.positioning}
+          title="Everything your property business needs online."
+          description={`Shopify gives a store everything it needs to sell online. ${siteConfig.name} does the same for brokers: your website, listings and enquiries, set up in minutes and run from WhatsApp.`}
+        />
+        <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {PLATFORM.map(({ icon: Icon, title, body }) => (
+            <div key={title} className="rounded-2xl border bg-card p-6 shadow-soft">
+              <span className="flex size-10 items-center justify-center rounded-xl bg-brand-soft text-brand">
+                <Icon className="size-5" />
+              </span>
+              <h3 className="mt-5 text-lg font-semibold">{title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{body}</p>
+            </div>
+          ))}
+        </div>
+        <ol className="mx-auto mt-10 flex flex-col items-center gap-2 text-sm md:flex-row md:justify-center md:gap-3" aria-label="Go live in three steps">
+          {[
+            ["1", "Create your account", "2 min"],
+            ["2", "Send properties on WhatsApp", "seconds each"],
+            ["3", "Share your website", "live"],
+          ].map(([n, label, time], i) => (
+            <li key={n} className="flex items-center gap-3">
+              <span className="inline-flex items-center gap-2 rounded-full border bg-background py-1 pr-3 pl-1 whitespace-nowrap shadow-soft">
+                <span className="flex size-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">{n}</span>
+                <span className="font-medium">{label}</span>
+                <span className="text-muted-foreground">· {time}</span>
+              </span>
+              {i < 2 && <ArrowRight className="hidden size-3.5 text-muted-foreground md:block" aria-hidden />}
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+  );
+}
+
 /* ─────────────────────────── How it works ─────────────────────────── */
 
 const EXTRACTED = ["Property type", "Location", "Price", "Area", "BHK", "Amenities", "Description"];
@@ -67,9 +121,9 @@ export function HowItWorksSection() {
   return (
     <section id="how-it-works" className="scroll-mt-20 py-20 sm:py-28">
       <div className="container-page">
-        <SectionHeading eyebrow="How it works" title="From WhatsApp message to professional listing." description="Keep working the way you already do. PropFlow does the organising — you stay in control of what gets published." />
+        <SectionHeading eyebrow="How it works" title="From WhatsApp message to professional listing." description={`Keep working the way you already do. ${siteConfig.name} does the organising — you stay in control of what gets published.`} />
         <div className="mt-14 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Step n="01" icon={Send} title="Send" body="Send property details and images to your PropFlow WhatsApp number — like you'd send them to a customer." />
+          <Step n="01" icon={Send} title="Send" body={`Send property details and images to your ${siteConfig.name} WhatsApp number — like you'd send them to a customer.`} />
           <Step n="02" icon={Sparkles} title="AI organises" body="AI extracts the facts from your message. It never invents details you didn't send.">
             <div className="mt-4 flex flex-wrap gap-1.5">
               {EXTRACTED.map((f) => (
@@ -117,7 +171,7 @@ export function WhatsAppSection() {
         <SectionHeading
           eyebrow="WhatsApp workflow"
           title="Your WhatsApp is already your CRM. We make it smarter."
-          description="Forward a property to PropFlow the same way you share it today. Seconds later you get a structured draft to review — right on WhatsApp."
+          description={`Forward a property to ${siteConfig.name} the same way you share it today. Seconds later you get a structured draft to review — right on WhatsApp.`}
         />
         <div className="mt-14">
           <WhatsAppDemo />
@@ -234,7 +288,7 @@ export function DashboardPreviewSection() {
         <div className="mt-12 overflow-hidden rounded-2xl border bg-card shadow-lifted">
           <div className="flex items-center justify-between border-b px-5 py-3">
             <div className="flex items-center gap-2 text-sm font-semibold">
-              <LogoMark className="size-6" /> Dashboard
+              <AppIcon className="size-6 rounded-md" /> Dashboard
             </div>
             <span className="flex size-7 items-center justify-center rounded-full bg-brand text-[11px] font-semibold text-white">RK</span>
           </div>
@@ -289,7 +343,7 @@ export function BrandedWebsiteSection() {
   return (
     <section id="website" className="scroll-mt-20 py-20 sm:py-28">
       <div className="container-page grid items-center gap-12 lg:grid-cols-2">
-        <BrowserFrame url={`${sampleBroker.subdomain}.propflow.in`} className="order-2 lg:order-1">
+        <BrowserFrame url={sampleSiteHost} className="order-2 lg:order-1">
           <div className="bg-[linear-gradient(180deg,var(--brand-soft),transparent)] px-6 pt-8 pb-6">
             <div className="flex items-center gap-3">
               <span className="flex size-11 items-center justify-center rounded-xl bg-brand text-sm font-bold text-white">RP</span>
@@ -335,7 +389,7 @@ export function BrandedWebsiteSection() {
             <div className="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-soft">
               <Globe className="size-5 text-brand" />
               <div className="text-sm">
-                <p className="font-mono font-medium">{sampleBroker.subdomain}.propflow.in</p>
+                <p className="font-mono font-medium">{sampleSiteHost}</p>
                 <p className="text-muted-foreground">Included on every plan</p>
               </div>
             </div>
@@ -415,7 +469,7 @@ export function PricingSection() {
                   ))}
                 </ul>
                 <Button asChild variant={plan.highlighted ? "default" : "outline"} className="mt-8 h-11 rounded-xl">
-                  {id === "business" ? <a href={`mailto:${siteConfig.supportEmail}?subject=PropFlow%20Business`}>{plan.cta}</a> : <Link href={`/register?plan=${id}`}>{plan.cta}</Link>}
+                  {id === "business" ? <a href={`mailto:${siteConfig.supportEmail}?subject=${encodeURIComponent(`${siteConfig.name} Business`)}`}>{plan.cta}</a> : <Link href={`/register?plan=${id}`}>{plan.cta}</Link>}
                 </Button>
               </div>
             );
@@ -433,10 +487,10 @@ export function FinalCta() {
     <section className="pb-20 sm:pb-28">
       <div className="container-page">
         <div className="relative overflow-hidden rounded-3xl bg-primary px-6 py-14 text-center text-primary-foreground sm:px-12 sm:py-16">
-          <div aria-hidden className="absolute inset-0 bg-[radial-gradient(50%_80%_at_50%_0%,oklch(0.5_0.09_184/0.45),transparent)]" />
+          <div aria-hidden className="absolute inset-0 bg-[radial-gradient(50%_80%_at_50%_0%,oklch(0.609_0.182_257.3/0.4),transparent)]" />
           <div className="relative">
-            <h2 className="mx-auto max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">Send your next property on WhatsApp. Share it as a professional listing.</h2>
-            <p className="mx-auto mt-4 max-w-lg text-primary-foreground/70">Set up your broker workspace in two minutes. Free for your first 10 properties.</p>
+            <h2 className="mx-auto max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">Launch your property website today.</h2>
+            <p className="mx-auto mt-4 max-w-lg text-primary-foreground/70">Set up in two minutes, then send your next property on WhatsApp. Free for your first 10 properties.</p>
             <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
               <Button asChild className="h-12 rounded-xl bg-background px-6 text-[15px] text-foreground hover:bg-background/90">
                 <Link href="/register">
@@ -455,10 +509,9 @@ export function SiteFooter() {
   return (
     <footer className="border-t py-10">
       <div className="container-page flex flex-col gap-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2 text-foreground">
-          <LogoMark className="size-6" />
-          <span className="font-semibold">{siteConfig.name}</span>
-          <span className="text-muted-foreground">· {siteConfig.secondaryTagline}</span>
+        <div className="flex flex-col gap-2">
+          <Logo />
+          <span className="text-muted-foreground">{siteConfig.secondaryTagline}</span>
         </div>
         <nav className="flex flex-wrap gap-5">
           <a href="#pricing" className="hover:text-foreground">Pricing</a>

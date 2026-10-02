@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { DashboardShell } from "@/features/dashboard/shell";
 import { PLANS } from "@/lib/config/plans";
+import { siteConfig } from "@/lib/config/site";
 import { brokerBaseUrl, brokerDisplayHost } from "@/lib/urls";
 import { requireTenantContext } from "@/server/auth/session";
 import { getNotifications } from "@/server/services/notifications/inbox-notifications.service";
@@ -8,7 +9,7 @@ import { getSubscription, trialDaysLeft } from "@/server/services/subscriptions/
 import { getBrokerForTenant } from "@/server/services/tenants/broker.service";
 import { getSession } from "@/server/auth/session";
 
-export const metadata: Metadata = { title: { default: "Dashboard", template: "%s · PropFlow" }, robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: { default: "Dashboard", template: `%s · ${siteConfig.name}` }, robots: { index: false, follow: false } };
 
 export default async function DashboardLayout({ children }: LayoutProps<"/dashboard">) {
   const ctx = await requireTenantContext();

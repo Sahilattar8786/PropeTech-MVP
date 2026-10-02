@@ -1,7 +1,7 @@
 import { connectDB } from "@/server/db/connect";
 import { Broker, Lead, Property, Subscription, Tenant, User, type IBroker, type ISubscription, type ITenant } from "@/server/models";
 
-/** Platform-wide overview for PropFlow staff (ADMIN_EMAILS). Read-only. */
+/** Platform-wide overview for Propsora staff (ADMIN_EMAILS). Read-only. */
 export async function getPlatformOverview() {
   await connectDB();
   const [tenants, users, properties, published, leads] = await Promise.all([

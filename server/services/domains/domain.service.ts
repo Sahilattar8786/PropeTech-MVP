@@ -20,14 +20,17 @@ export interface DomainDTO {
   verifiedAt?: string;
 }
 
-const TXT_PREFIX = "_propflow";
+const TXT_PREFIX = "_propsora";
+const TXT_VALUE_PREFIX = "propsora-verify=";
+/** Records issued before the PropFlow → Propsora rename keep verifying. */
+const LEGACY_TXT = { prefix: "_propflow", valuePrefix: "propflow-verify=" };
 
 function toDTO(doc: IDomain): DomainDTO {
   return {
     id: String(doc._id),
     hostname: doc.hostname,
     status: doc.status,
-    verificationRecord: { type: "TXT", name: `${TXT_PREFIX}.${doc.hostname}`, value: `propflow-verify=${doc.verificationToken}` },
+    verificationRecord: { type: "TXT", name: `${TXT_PREFIX}.${doc.hostname}`, value: `${TXT_VALUE_PREFIX}${doc.verificationToken}` },
     // Where the broker points their domain: the hosting provider's CNAME target (Vercel by default).
     routingRecord: { type: "CNAME", name: doc.hostname, value: env().CUSTOM_DOMAIN_CNAME_TARGET },
     verifiedAt: doc.verifiedAt?.toISOString(),
@@ -63,14 +66,17 @@ export async function verifyDomain(ctx: TenantContext, id: string): Promise<Doma
   await connectDB();
   const doc = await Domain.findOne({ _id: id, tenantId: ctx.tenantId });
   if (!doc) throw notFound("Domain");
-  let records: string[][] = [];
-  try {
-    records = await resolveTxt(`${TXT_PREFIX}.${doc.hostname}`);
-  } catch {
-    records = [];
-  }
-  const expected = `propflow-verify=${doc.verificationToken}`;
-  const verified = records.some((chunks) => chunks.join("") === expected);
+  const lookups = [
+    { name: `${TXT_PREFIX}.${doc.hostname}`, expected: `${TXT_VALUE_PREFIX}${doc.verificationToken}` },
+    { name: `${LEGACY_TXT.prefix}.${doc.hostname}`, expected: `${LEGACY_TXT.valuePrefix}${doc.verificationToken}` },
+  ];
+  const results = await Promise.all(
+    lookups.map(async ({ name, expected }) => {
+      const records = await resolveTxt(name).catch(() => [] as string[][]);
+      return records.some((chunks) => chunks.join("") === expected);
+    }),
+  );
+  const verified = results.some(Boolean);
   doc.status = verified ? "verified" : "failed";
   doc.lastCheckedAt = new Date();
   if (verified) doc.verifiedAt = new Date();

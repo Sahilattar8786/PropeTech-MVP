@@ -13,7 +13,7 @@ import { prepareImageForUpload } from "@/lib/image-compress";
 import { cn } from "@/lib/utils";
 import { updateBrandingAction } from "./actions";
 
-const SWATCHES = ["#0f766e", "#1d4ed8", "#7c3aed", "#b45309", "#be123c", "#15803d", "#0f172a", "#9333ea"];
+const SWATCHES = ["#0E6CDD", "#0f766e", "#7c3aed", "#b45309", "#be123c", "#15803d", "#111827", "#9333ea"];
 
 function ImageSlot({ label, value, onChange, round }: { label: string; value?: string; onChange: (url?: string) => void; round?: boolean }) {
   const input = useRef<HTMLInputElement>(null);

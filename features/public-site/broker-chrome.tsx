@@ -89,7 +89,7 @@ export function BrokerFooter({ broker }: { broker: BrokerDTO }) {
         <div className="container-page flex items-center justify-between py-4 text-xs text-muted-foreground">
           <span>© {new Date().getFullYear()} {broker.businessName}</span>
           <a href={getAppUrl()} className="inline-flex items-center gap-1.5 hover:text-foreground">
-            <LogoMark className="size-4" /> Powered by {siteConfig.name}
+            <LogoMark className="h-2.5" /> Powered by {siteConfig.name}
           </a>
         </div>
       </div>

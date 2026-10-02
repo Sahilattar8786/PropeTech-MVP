@@ -1,12 +1,12 @@
 # Custom domains — support & developer guide
 
-A broker on the **Business plan** can show their PropFlow website on their own domain:
+A broker on the **Business plan** can show their Propsora website on their own domain:
 
 | Before | After |
 |---|---|
-| `propflow.in/amanbrokers/property/2bhk-baner` | `www.amanbroker.com/property/2bhk-baner` |
+| `amanbrokers.propsora.com/property/2bhk-baner` | `www.amanbroker.com/property/2bhk-baner` |
 
-Once connected, every link PropFlow generates for that broker (share links, the WhatsApp enquiry link, SEO canonical URLs, the sitemap) uses their domain. Old PropFlow links keep working.
+Once connected, every link Propsora generates for that broker (share links, the WhatsApp enquiry link, SEO canonical URLs, the sitemap) uses their domain. Old Propsora links keep working.
 
 ---
 
@@ -14,7 +14,7 @@ Once connected, every link PropFlow generates for that broker (share links, the 
 
 ### Who can connect a domain
 - The **Business** plan only. Free and Pro brokers see an upgrade prompt on **Settings → Domain**.
-- The broker must **own the domain** and be able to edit its DNS (at GoDaddy, Hostinger, BigRock, Namecheap, Cloudflare, etc.). PropFlow doesn't sell domains.
+- The broker must **own the domain** and be able to edit its DNS (at GoDaddy, Hostinger, BigRock, Namecheap, Cloudflare, etc.). Propsora doesn't sell domains.
 - Recommend **`www.`** (e.g. `www.amanbroker.com`). Many registrars can't point a bare domain (`amanbroker.com`) with a CNAME. The broker can forward `amanbroker.com` → `www.amanbroker.com` in their registrar.
 
 ### Who does what
@@ -22,25 +22,25 @@ Adding the domain to our hosting (Vercel) is a **manual ops step** until automat
 
 | Step | Who |
 |---|---|
-| 1. Broker adds the domain in PropFlow | Broker (support can guide) |
+| 1. Broker adds the domain in Propsora | Broker (support can guide) |
 | 2. Add the domain to the Vercel project | **Ops/Dev** (needs Vercel access) |
 | 3. Broker adds 2 DNS records at their registrar | Broker (support guides) |
-| 4. Click **Verify** in PropFlow | Broker or support |
+| 4. Click **Verify** in Propsora | Broker or support |
 
 ### Step by step
 
-**1. Broker adds the domain in PropFlow**
-Dashboard → **Settings → Domain** → type `www.amanbroker.com` → **Add**. PropFlow shows two DNS records:
+**1. Broker adds the domain in Propsora**
+Dashboard → **Settings → Domain** → type `www.amanbroker.com` → **Add**. Propsora shows two DNS records:
 
 | Type | Name | Value | Purpose |
 |---|---|---|---|
-| TXT | `_propflow.www.amanbroker.com` | `propflow-verify=…` (unique per domain) | Proves the broker owns the domain |
-| CNAME | `www.amanbroker.com` | `cname.vercel-dns.com` | Sends visitors to PropFlow |
+| TXT | `_propsora.www.amanbroker.com` | `propsora-verify=…` (unique per domain) | Proves the broker owns the domain |
+| CNAME | `www.amanbroker.com` | `cname.vercel-dns.com` | Sends visitors to Propsora |
 
 **2. Ops adds the domain in Vercel**
 Vercel → project → **Settings → Domains → Add Domain** → enter exactly the same hostname (`www.amanbroker.com`) → Production.
 - If Vercel offers to add `amanbroker.com` redirecting to `www`, accept.
-- If Vercel shows a **different CNAME value** than PropFlow, give the broker **Vercel's value**. Tell dev so they can update `CUSTOM_DOMAIN_CNAME_TARGET`.
+- If Vercel shows a **different CNAME value** than Propsora, give the broker **Vercel's value**. Tell dev so they can update `CUSTOM_DOMAIN_CNAME_TARGET`.
 
 **3. Broker adds the DNS records**
 At most registrars the **Host/Name** field is only the part *before* the domain, because the registrar adds the domain itself:
@@ -48,14 +48,14 @@ At most registrars the **Host/Name** field is only the part *before* the domain,
 | Record | Host / Name field | Value |
 |---|---|---|
 | CNAME | `www` | `cname.vercel-dns.com` |
-| TXT | `_propflow.www` | `propflow-verify=…` (copy from PropFlow) |
+| TXT | `_propsora.www` | `propsora-verify=…` (copy from Propsora) |
 
 - **Cloudflare DNS:** set the CNAME's proxy status to **DNS only** (grey cloud) so Vercel can issue the SSL certificate.
 - Delete any **other records on `www`** (an old A record or a parked-page CNAME). They conflict.
 - DNS usually updates in 5–30 minutes. It can take up to 24 hours at some registrars.
 
 **4. Verify**
-Once Vercel shows **Valid Configuration**, click **Verify** in PropFlow → status becomes **Verified**.
+Once Vercel shows **Valid Configuration**, click **Verify** in Propsora → status becomes **Verified**.
 The domain starts working within about **1 minute**. Existing listing pages show the new links within **5 minutes** (page cache).
 
 **5. Test**
@@ -65,30 +65,30 @@ Open `https://www.amanbroker.com` → the broker's website. Open a listing → t
 | What | How |
 |---|---|
 | CNAME in place? | `dig +short CNAME www.amanbroker.com` → `cname.vercel-dns.com.` (or use dnschecker.org) |
-| TXT in place? | `dig +short TXT _propflow.www.amanbroker.com` → `"propflow-verify=…"` |
-| PropFlow mapping active? | Open `https://<our-app-url>/api/domains/resolve?host=www.amanbroker.com` → `{"slug":"amanbrokers"}`. `{"slug":null}` = not verified yet |
+| TXT in place? | `dig +short TXT _propsora.www.amanbroker.com` → `"propsora-verify=…"` |
+| Propsora mapping active? | Open `https://<our-app-url>/api/domains/resolve?host=www.amanbroker.com` → `{"slug":"amanbrokers"}`. `{"slug":null}` = not verified yet |
 | Hosting/SSL OK? | Vercel → project → Domains → the domain shows **Valid Configuration** |
 
 ### Troubleshooting
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| **Verify** stays "Not verified yet" | TXT not visible yet, or entered with the full name | Host must be `_propflow.www`, not `_propflow.www.amanbroker.com` (that becomes `…amanbroker.com.amanbroker.com`). Wait, then Verify again |
-| "This domain is already connected" | The same hostname is on another PropFlow account | Check `/admin`. Remove it from the old account first |
+| **Verify** stays "Not verified yet" | TXT not visible yet, or entered with the full name | Host must be `_propsora.www`, not `_propsora.www.amanbroker.com` (that becomes `…amanbroker.com.amanbroker.com`). Wait, then Verify again |
+| "This domain is already connected" | The same hostname is on another Propsora account | Check `/admin`. Remove it from the old account first |
 | "Custom domains are available on the Business plan" | Broker isn't on Business | Upgrade in **Settings → Billing** |
 | Vercel shows "Invalid Configuration" | Wrong/extra DNS records, or Cloudflare proxy on | Only one CNAME on `www`. Cloudflare: DNS only |
 | Browser shows an SSL/certificate warning | Certificate not issued yet, or a CAA record blocks it | Wait ~10 min after Vercel shows Valid. If the domain has CAA records, they must allow Let's Encrypt |
-| Domain opens but shows the PropFlow homepage or "Page not found" | Not verified in PropFlow, or verified < 1 minute ago | Check the `/api/domains/resolve` link above. Verify again |
+| Domain opens but shows the Propsora homepage or "Page not found" | Not verified in Propsora, or verified < 1 minute ago | Check the `/api/domains/resolve` link above. Verify again |
 | A single listing shows "Page not found" | That property is a draft or delisted | Publish it in the dashboard |
-| Broker opens `www.amanbroker.com/dashboard` and lands on PropFlow | By design | The dashboard and login always live on the main PropFlow site |
+| Broker opens `www.amanbroker.com/dashboard` and lands on Propsora | By design | The dashboard and login always live on the main Propsora site |
 | Bare `amanbroker.com` doesn't work | Only `www` was connected | Registrar forwarding `amanbroker.com` → `www.amanbroker.com`, or add the bare domain in Vercel too (A record `76.76.21.21`, or the value Vercel shows) |
 
 ### Removing a domain
-Broker: **Settings → Domain → Remove**. Their links switch back to the PropFlow address immediately. Ops: remove the same domain from the Vercel project. The broker can then delete the DNS records.
+Broker: **Settings → Domain → Remove**. Their links switch back to the Propsora address immediately. Ops: remove the same domain from the Vercel project. The broker can then delete the DNS records.
 
 ### Message template for brokers
-> Hi {name}, to connect **{domain}** to your PropFlow website, please add these two records in your domain's DNS settings ({registrar}):
+> Hi {name}, to connect **{domain}** to your Propsora website, please add these two records in your domain's DNS settings ({registrar}):
 > 1. **CNAME** — Host: `www` — Value: `cname.vercel-dns.com`
-> 2. **TXT** — Host: `_propflow.www` — Value: `{verification value from Settings → Domain}`
+> 2. **TXT** — Host: `_propsora.www` — Value: `{verification value from Settings → Domain}`
 >
 > Once added (usually 5–30 minutes), go to **Settings → Domain** and click **Verify**. Your listings will then open on {domain}. Reply here if you'd like us to check it for you.
 
@@ -117,7 +117,8 @@ Broker: **Settings → Domain → Remove**. Their links switch back to the PropF
 | Plan gate | `lib/config/plans.ts` → `entitlements.customDomain` (Business only) |
 
 ### Verification
-- The TXT record is `_propflow.<hostname>` with value `propflow-verify=<token>` (24 random hex chars per domain).
+- The TXT record is `_propsora.<hostname>` with value `propsora-verify=<token>` (24 random hex chars per domain).
+- Records issued before the rename (`_propflow.<hostname>` / `propflow-verify=<token>`) are still accepted.
 - Verification runs `dns.resolveTxt` when the broker clicks **Verify**. There's no background re-check.
 - On success: `Domain.status = verified`, `Broker.customDomain = hostname`. Removing clears both.
 

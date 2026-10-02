@@ -1,41 +1,80 @@
-# Deploying PropFlow to production
+# Deploying Propsora
 
-This guide takes PropFlow from a laptop to a live site at `https://yourdomain.com`: Google login, real WhatsApp, Cloudflare storage and DNS, and automated checks on every push. Replace `yourdomain.com` with your domain throughout.
+Propsora runs as two environments from one repository and one Vercel project:
+
+| | **Production** | **Staging** |
+|---|---|---|
+| Git branch | `main` | `staging` |
+| URL | https://propsora.com (broker sites `<slug>.propsora.com`) | https://prop.sahilproject.ink |
+| Vercel | Production environment | Preview environment + branch domain |
+| Env file → command | `.env.production` → `npm run env:push` | `.env.staging` → `npm run env:push -- --staging` |
+| Database | its own (e.g. `propsora`) | its own (e.g. `propsora-staging`) |
+| Redis queue | its own | its own, or the same Redis with `QUEUE_PREFIX=staging` |
+| Worker (Railway) | `production` environment, deploys `main` | `staging` environment, deploys `staging` |
+| WhatsApp | real Meta number, webhook → propsora.com | sandbox (`WHATSAPP_PROVIDER=sandbox`) or a second test number |
+| Search engines | indexed | never indexed (robots.txt, `X-Robots-Tag`, noindex meta), "Staging" badge |
+
+Work flows `feature branch → staging → main`: merge into `staging`, test on prop.sahilproject.ink, then open a PR from `staging` to `main`. `env:push` refuses to push a staging file that shares production's database, queue or URL.
 
 ```
-Customers & brokers ──► Cloudflare DNS ──► Vercel (web app, API, WhatsApp webhook)
-                                              │        │         │
-                         MongoDB Atlas ◄──────┘        │         └──► Redis (job queue)
-                         Cloudflare R2 (photos) ◄──────┘                  │
-Meta WhatsApp ──webhook──► Vercel                  Railway worker ◄───────┘
-                                                   (photos, AI, WhatsApp replies)
+Customers & brokers ──► DNS ──► Vercel (web app, API, WhatsApp webhook)
+                                   │        │         │
+              MongoDB Atlas ◄──────┘        │         └──► Redis (job queue)
+              Cloudflare R2 (photos) ◄──────┘                  │
+Meta WhatsApp ──webhook──► Vercel       Railway worker ◄───────┘
+                                        (photos, AI, WhatsApp replies)
 ```
+
+---
+
+## Moving production to propsora.com (one-time)
+
+Until now production ran on prop.sahilproject.ink. Do these in order, so propsora.com works before the app starts linking to it.
+
+1. **DNS → Vercel.** Wildcard broker subdomains (`<slug>.propsora.com`) need Vercel's nameservers.
+   - Vercel → project → **Settings → Domains → Add** `propsora.com` (Production), then `www.propsora.com` (redirect to `propsora.com`) and `*.propsora.com`.
+   - Namecheap → **Domain List → propsora.com → Nameservers → Custom DNS** → `ns1.vercel-dns.com`, `ns2.vercel-dns.com`. Namecheap's parking page and email forwarding stop; add MX records for `support@propsora.com` in Vercel DNS (Zoho Mail, ImprovMX or Google Workspace).
+   - Prefer to keep Namecheap DNS? Use `A @ 76.76.21.21` and `CNAME www cname.vercel-dns.com`, and leave `NEXT_PUBLIC_ROOT_DOMAIN` empty. Broker sites are then `propsora.com/<slug>`.
+2. **Move prop.sahilproject.ink to staging.** Create the branch (`git switch -c staging main && git push -u origin staging`). In Vercel → **Settings → Domains** → `prop.sahilproject.ink` → **Edit** → **Git Branch: `staging`**. Do the same for `*.prop.sahilproject.ink` if it's added.
+3. **Production variables.** `.env.production` has `NEXT_PUBLIC_APP_URL=https://propsora.com`, `NEXT_PUBLIC_ROOT_DOMAIN=propsora.com` and `APP_ENV=production`. Run `npm run env:push -- --railway`.
+4. **Staging variables.** `cp .env.example .env.staging` → a **new** Atlas database, a separate Redis (or `QUEUE_PREFIX=staging`), `NEXT_PUBLIC_APP_URL=https://prop.sahilproject.ink`, `NEXT_PUBLIC_ROOT_DOMAIN=prop.sahilproject.ink`, `APP_ENV=staging`, a new `NEXTAUTH_SECRET`, `WHATSAPP_PROVIDER=sandbox`, `ALLOW_TEST_BILLING=true`. Run `npm run env:push -- --staging --railway`.
+5. **Railway.** Project → **Environments → New → `staging`**. Point the `worker` service in `staging` at the `staging` branch; `production` stays on `main`.
+6. **Google login** (step 7 below): add `https://propsora.com` to the authorized origins and `https://propsora.com/api/auth/callback/google` to the redirect URIs. Keep the prop.sahilproject.ink entries for staging.
+7. **Meta** (step 8 below): callback URL `https://propsora.com/api/webhooks/whatsapp`, Privacy/Terms URLs on propsora.com, new app icon (`public/brand/app-icon-1024.png`), display name **Propsora** (Meta reviews it), and the `property_draft_ready` button URL `https://propsora.com/dashboard/properties/{{1}}`.
+8. **Deploy** `main` (push or Vercel → Redeploy). `NEXT_PUBLIC_*` values only apply after a new build.
+
+✅ `https://propsora.com/api/health` → `{"status":"ok","db":"up"}`, a broker site opens at `https://<slug>.propsora.com`, and `https://prop.sahilproject.ink/robots.txt` shows `Disallow: /` and a "Staging" badge.
+
+> Listing and broker URLs are built from the environment, so every existing listing moves to propsora.com automatically. Links already shared on prop.sahilproject.ink will open staging, which has a different database. Photos keep loading from `media.sahilproject.ink`, because stored image URLs point there.
+
+---
+
+## First-time setup, step by step
 
 Do the steps in order. Each ends with a check.
 
 ---
 
-## 1. Domain on Cloudflare
-1. Buy your domain (any registrar), then **Cloudflare → Add a site** → Free plan.
-2. At your registrar, replace the nameservers with the two Cloudflare shows. Wait until Cloudflare says **Active** (minutes to a few hours).
+## 1. Domain DNS
+propsora.com uses **Vercel's nameservers** (see *Moving production to propsora.com* above), because wildcard broker subdomains `*.propsora.com` only work that way on Vercel. Cloudflare still hosts `sahilproject.ink`, which serves staging and the photo CDN (`media.sahilproject.ink`). R2 custom domains must live on a Cloudflare zone.
 
-✅ Cloudflare dashboard shows the domain as Active.
+✅ `dig +short NS propsora.com` shows `ns1.vercel-dns.com` / `ns2.vercel-dns.com`.
 
 ## 2. MongoDB Atlas (production database)
-1. Use a **separate database for production**. The simplest way is the database name `propflow` in the connection string. Your laptop currently uses `test`; keep dev and prod data apart.
+1. Use a **separate database for production**. The simplest way is the database name `propsora` in the connection string (and `propsora-staging` for staging). Your laptop currently uses `test`; keep dev and prod data apart.
 2. **Database Access** → create a user for production with a long random password.
 3. **Network Access** → `0.0.0.0/0` (Vercel and Railway don't have fixed IPs).
 4. Connection string:
-   `mongodb+srv://USER:PASSWORD@cluster.xxxxx.mongodb.net/propflow?retryWrites=true&w=majority`
+   `mongodb+srv://USER:PASSWORD@cluster.xxxxx.mongodb.net/propsora?retryWrites=true&w=majority`
 
 ✅ Keep the string for step 5. The free M0 tier is fine to launch; move to Flex when the database nears 512 MB.
 
 ## 3. Cloudflare R2 (photo storage)
-1. **R2 → Create bucket** → `propflow-media-prod` (keep your dev bucket for local testing).
-2. **Bucket → Settings → Custom Domains → Connect** → `media.yourdomain.com`. Use this instead of `r2.dev`, which is rate-limited and not meant for production traffic.
+1. **R2 → Create bucket** → `propsora-media-prod` (keep your dev bucket for local testing).
+2. **Bucket → Settings → Custom Domains → Connect** → a hostname on a Cloudflare zone, here `media.sahilproject.ink`. Use this instead of `r2.dev`, which is rate-limited and not meant for production traffic. Stored photo URLs include this host, so don't change it later without rewriting them (`scripts/rewrite-media-urls.mjs`).
 3. **R2 → Manage API tokens → Create Account API token** → *Object Read & Write* → only this bucket → copy the **Access Key ID** and **Secret Access Key**.
 
-✅ `S3_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com`, `S3_BUCKET`, the keys, and `S3_PUBLIC_URL=https://media.yourdomain.com`.
+✅ `S3_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com`, `S3_BUCKET`, the keys, and `S3_PUBLIC_URL=https://media.sahilproject.ink`.
 
 ## 4. Redis (job queue)
 1. redis.io → **Try free** → create a free database (region close to Mumbai if offered).
@@ -55,15 +94,12 @@ Do the steps in order. Each ends with a check.
    npm run env:push                  # add --railway to also update the worker
    ```
    The script refuses localhost URLs and sandbox or test settings. Generate new secrets for production; don't reuse your laptop's. You can also paste the whole file into **Settings → Environment Variables** (Vercel imports all lines at once).
-4. **Settings → Domains → Add** `yourdomain.com` and `www.yourdomain.com` (set `www` to redirect to the apex). Vercel shows the DNS records. In **Cloudflare → DNS** create them exactly, typically:
-   - `A` `@` → `76.76.21.21`
-   - `CNAME` `www` → `cname.vercel-dns.com`
-   - Proxy status **DNS only** (grey cloud) for both, so Vercel can issue the SSL certificate.
+4. **Settings → Domains → Add** `propsora.com`, `www.propsora.com` (redirect to the apex) and `*.propsora.com`. With Vercel nameservers the records and certificates are created for you. Staging's `prop.sahilproject.ink` is connected to the `staging` Git branch (Cloudflare record **DNS only**, grey cloud).
 5. **Deployments → Redeploy**. `NEXT_PUBLIC_*` variables only apply after a new build.
 
-✅ `https://yourdomain.com/api/health` returns `{"status":"ok","db":"up"}`, and you can register an account and upload a photo.
+✅ `https://propsora.com/api/health` returns `{"status":"ok","db":"up"}`, and you can register an account and upload a photo.
 
-> Leave `NEXT_PUBLIC_ROOT_DOMAIN` empty for now. Broker sites live at `yourdomain.com/<broker>`. Wildcard broker subdomains on Vercel require moving DNS to Vercel's nameservers; brokers who want their own domain use [custom domains](custom-domains.md).
+> With `NEXT_PUBLIC_ROOT_DOMAIN=propsora.com`, broker sites live at `<broker>.propsora.com`, which needs `*.propsora.com` on Vercel (Vercel nameservers). Without it they live at `propsora.com/<broker>`. Brokers who want their own domain use [custom domains](custom-domains.md).
 
 ## 6. Worker (Railway)
 The worker processes WhatsApp photos, runs the AI and sends WhatsApp replies. Vercel can't run long-lived processes, so it runs on Railway.
@@ -72,15 +108,15 @@ The worker processes WhatsApp photos, runs the AI and sends WhatsApp replies. Ve
 2. **Variables** → add everything marked *Worker* in the table below.
 3. **Settings** → if available, enable **Wait for CI**, so the worker only deploys after the GitHub checks pass.
 
-✅ Railway logs show `PropFlow worker running: whatsapp-message-processing, …`.
+✅ Railway logs show `Propsora worker running (production, prefix "bull"): whatsapp-message-processing, …`.
 
 ## 7. Google login
 1. console.cloud.google.com → create a project → **Google Auth Platform**:
-   - **Branding:** app name, support email, homepage `https://yourdomain.com`, privacy `https://yourdomain.com/privacy`, terms `https://yourdomain.com/terms`, authorized domain `yourdomain.com`. Skip the logo; uploading one triggers a longer brand review.
+   - **Branding:** app name, support email, homepage `https://propsora.com`, privacy `https://propsora.com/privacy`, terms `https://propsora.com/terms`, authorized domain `propsora.com`. Skip the logo; uploading one triggers a longer brand review.
    - **Audience:** External → **Publish app**. The default scopes (email, profile) need no verification.
    - **Clients → Create client → Web application**:
-     - Authorized JavaScript origins: `https://yourdomain.com` (and `http://localhost:3000` for dev)
-     - Authorized redirect URIs: `https://yourdomain.com/api/auth/callback/google` (and `http://localhost:3000/api/auth/callback/google`)
+     - Authorized JavaScript origins: `https://propsora.com` (and `http://localhost:3000` for dev)
+     - Authorized redirect URIs: `https://propsora.com/api/auth/callback/google` (and `http://localhost:3000/api/auth/callback/google`)
 2. Copy the Client ID and Client Secret → Vercel env `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` → redeploy.
 
 ✅ **Continue with Google** on `/login` is enabled (it's greyed out while these are missing). Sign in with a Google account: new users land on onboarding to create their workspace.
@@ -90,16 +126,16 @@ The worker processes WhatsApp photos, runs the AI and sends WhatsApp replies. Ve
 2. **Production number:** WhatsApp Manager → Phone numbers → **Add**. Use a number that is **not** active on the WhatsApp app (delete its WhatsApp account first), verify it by SMS or call, and submit the display name. Add a **payment method**.
 3. **Permanent token:** Business Settings → System users → Admin user → assign your app and WhatsApp account (Full control) → **Generate token**, never expires, permissions `whatsapp_business_messaging` and `whatsapp_business_management`.
 4. **Publish the Meta app.** Meta only delivers real messages to published apps. Go to App settings → Basic:
-   - Privacy Policy URL: `https://yourdomain.com/privacy`
-   - Terms of Service URL: `https://yourdomain.com/terms`
-   - User data deletion → Instructions URL: `https://yourdomain.com/privacy#data-deletion`
+   - Privacy Policy URL: `https://propsora.com/privacy`
+   - Terms of Service URL: `https://propsora.com/terms`
+   - User data deletion → Instructions URL: `https://propsora.com/privacy#data-deletion`
    - App icon: `public/brand/app-icon-1024.png` from this repo
    - Category: Business → then switch **App Mode to Live / Publish**.
-5. **Webhook:** WhatsApp → Configuration → Callback URL `https://yourdomain.com/api/webhooks/whatsapp`, Verify token = your `WHATSAPP_VERIFY_TOKEN` → **Verify and save** → subscribe to **messages**.
+5. **Webhook:** WhatsApp → Configuration → Callback URL `https://propsora.com/api/webhooks/whatsapp`, Verify token = your `WHATSAPP_VERIFY_TOKEN` → **Verify and save** → subscribe to **messages**.
 6. **Template** (used when a broker hasn't messaged in 24 hours): WhatsApp Manager → Message templates → Create:
    - Name `property_draft_ready`, category **Utility**, language **English (`en`)**
    - Body: `Your property draft is ready: {{1}} in {{2}} ({{3}}). Review it before publishing.`
-   - Button: *Visit website*, dynamic URL `https://yourdomain.com/dashboard/properties/{{1}}`
+   - Button: *Visit website*, dynamic URL `https://propsora.com/dashboard/properties/{{1}}`
 7. **Vercel and worker env:** set the real number's `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_BUSINESS_NUMBER`, the permanent token, `WHATSAPP_APP_SECRET` (required in production) and `WHATSAPP_VERIFY_TOKEN`. **Remove `WHATSAPP_PROVIDER=sandbox`** if you copied it from local.
 
 ✅ In the dashboard, open **Settings → WhatsApp** and send the `CONNECT` code from your phone. You get "✅ connected". Then send a property with photos; a draft appears within about 20 seconds with a "Property Draft Ready" reply.
@@ -134,13 +170,16 @@ platform.openai.com → API key → set a **monthly budget limit** → `AI_API_K
 
 | Variable | Vercel | Worker | Value |
 |---|:-:|:-:|---|
-| `DATABASE_URL` | ✓ | ✓ | Atlas string with `/propflow` |
+| `DATABASE_URL` | ✓ | ✓ | Atlas string with `/propsora` (staging: `/propsora-staging`) |
 | `NEXTAUTH_SECRET` | ✓ | ✓ | `openssl rand -base64 32` (new for prod) |
-| `NEXT_PUBLIC_APP_URL` | ✓ | ✓ | `https://yourdomain.com` |
+| `NEXT_PUBLIC_APP_URL` | ✓ | ✓ | `https://propsora.com` (staging: `https://prop.sahilproject.ink`) |
+| `NEXT_PUBLIC_ROOT_DOMAIN` | ✓ | ✓ | `propsora.com` (needs `*.propsora.com` on Vercel) |
+| `APP_ENV` | ✓ | ✓ | `production` / `staging` |
+| `QUEUE_PREFIX` | ✓ | ✓ | Only if staging shares production's Redis: `staging` |
 | `REDIS_URL` | ✓ | ✓ | Redis Cloud URL |
 | `STORAGE_DRIVER` | ✓ | ✓ | `s3` |
 | `S3_ENDPOINT`, `S3_REGION` (`auto`), `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | ✓ | ✓ | From R2 |
-| `S3_PUBLIC_URL` | ✓ | ✓ | `https://media.yourdomain.com` |
+| `S3_PUBLIC_URL` | ✓ | ✓ | `https://media.sahilproject.ink` |
 | `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_BUSINESS_NUMBER`, `WHATSAPP_APP_SECRET` | ✓ | ✓ | From Meta |
 | `WHATSAPP_VERIFY_TOKEN` | ✓ | | Random string, same as in Meta |
 | `WHATSAPP_API_URL` | ✓ | ✓ | `https://graph.facebook.com/v25.0` |
@@ -157,7 +196,7 @@ Never set in production: `WHATSAPP_PROVIDER=sandbox`, `ALLOW_TEST_BILLING=true`,
 ## Launch checklist
 - [ ] `/api/health` → `db: up`
 - [ ] Register with email; sign in with Google
-- [ ] Add a property with a phone photo (upload works; photo loads from `media.yourdomain.com`)
+- [ ] Add a property with a phone photo (upload works; photo loads from `media.sahilproject.ink`)
 - [ ] Publish → open the public link on a phone → **I'm Interested** opens WhatsApp with the property details → a lead appears in **Leads**
 - [ ] WhatsApp: CONNECT code → property with photos → draft + "Draft Ready" reply → review → publish
 - [ ] `/privacy` and `/terms` show your real company name. Set `siteConfig.legal` in `lib/config/site.ts`, and have both pages reviewed by a lawyer

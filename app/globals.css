@@ -9,7 +9,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-geist-sans);
+  --font-heading: var(--font-google-sans), var(--font-geist-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -40,7 +40,7 @@
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
 
-  /* PropFlow brand tokens */
+  /* Propsora brand tokens */
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
   --color-brand-soft: var(--brand-soft);
@@ -86,48 +86,51 @@
 }
 
 :root {
+  /* Propsora palette: ink #111827, read-receipt blue #2F80ED, surface #F5F8FF.
+     --brand is the read-receipt hue darkened to L 0.55 so it passes WCAG AA as text
+     (5.0:1 on white, 4.5:1 on --brand-soft); the logo itself keeps the exact #2F80ED. */
   --background: oklch(1 0 0);
-  --foreground: oklch(0.2 0.012 256);
-  --surface: oklch(0.985 0.002 90);
+  --foreground: oklch(0.21 0.032 264.7);
+  --surface: oklch(0.979 0.01 267.4);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.012 256);
+  --card-foreground: oklch(0.21 0.032 264.7);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.012 256);
-  --primary: oklch(0.22 0.014 256);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.967 0.003 256);
-  --secondary-foreground: oklch(0.22 0.014 256);
-  --muted: oklch(0.967 0.003 256);
-  --muted-foreground: oklch(0.52 0.014 256);
-  --accent: oklch(0.962 0.004 256);
-  --accent-foreground: oklch(0.22 0.014 256);
+  --popover-foreground: oklch(0.21 0.032 264.7);
+  --primary: oklch(0.21 0.032 264.7);
+  --primary-foreground: oklch(0.985 0.003 265);
+  --secondary: oklch(0.965 0.008 265);
+  --secondary-foreground: oklch(0.21 0.032 264.7);
+  --muted: oklch(0.965 0.008 265);
+  --muted-foreground: oklch(0.5 0.03 262);
+  --accent: oklch(0.958 0.012 262);
+  --accent-foreground: oklch(0.21 0.032 264.7);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.92 0.004 256);
-  --input: oklch(0.9 0.005 256);
-  --ring: oklch(0.55 0.09 184);
+  --border: oklch(0.922 0.013 265);
+  --input: oklch(0.9 0.016 265);
+  --ring: oklch(0.55 0.19 257.3);
 
-  --brand: oklch(0.5 0.09 184);
+  --brand: oklch(0.55 0.19 257.3);
   --brand-foreground: oklch(0.99 0 0);
-  --brand-soft: oklch(0.96 0.025 184);
+  --brand-soft: oklch(0.965 0.02 257.3);
   --whatsapp: oklch(0.6 0.16 150);
   --whatsapp-foreground: oklch(1 0 0);
   --whatsapp-chat: oklch(0.95 0.012 85);
   --whatsapp-bubble: oklch(0.93 0.07 140);
 
-  --chart-1: oklch(0.5 0.09 184);
+  --chart-1: oklch(0.609 0.182 257.3);
   --chart-2: oklch(0.6 0.16 150);
   --chart-3: oklch(0.7 0.13 70);
-  --chart-4: oklch(0.55 0.12 260);
-  --chart-5: oklch(0.65 0.02 256);
+  --chart-4: oklch(0.55 0.12 300);
+  --chart-5: oklch(0.65 0.02 265);
   --radius: 0.625rem;
-  --sidebar: oklch(0.99 0.001 90);
-  --sidebar-foreground: oklch(0.2 0.012 256);
-  --sidebar-primary: oklch(0.22 0.014 256);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.955 0.004 256);
-  --sidebar-accent-foreground: oklch(0.2 0.012 256);
-  --sidebar-border: oklch(0.92 0.004 256);
-  --sidebar-ring: oklch(0.55 0.09 184);
+  --sidebar: oklch(0.99 0.004 265);
+  --sidebar-foreground: oklch(0.21 0.032 264.7);
+  --sidebar-primary: oklch(0.21 0.032 264.7);
+  --sidebar-primary-foreground: oklch(0.985 0.003 265);
+  --sidebar-accent: oklch(0.955 0.014 262);
+  --sidebar-accent-foreground: oklch(0.21 0.032 264.7);
+  --sidebar-border: oklch(0.922 0.013 265);
+  --sidebar-ring: oklch(0.55 0.19 257.3);
 }
 
 @layer base {
@@ -145,7 +148,7 @@
   h1,
   h2,
   h3 {
-    @apply tracking-tight text-balance;
+    @apply font-heading tracking-tight text-balance;
   }
   :focus-visible {
     @apply outline-2 outline-offset-2 outline-ring;

@@ -3,8 +3,8 @@ import { getAppProtocol, getAppUrl, getRootDomain } from "@/lib/config/site";
 /**
  * Domain-mapping abstraction for public broker sites. Resolution order:
  *   1. verified custom domain    → https://www.rehanproperties.com
- *   2. broker subdomain          → https://rehanbrokers.propflow.in   (when NEXT_PUBLIC_ROOT_DOMAIN is set)
- *   3. path on the app domain    → https://propflow.in/rehanbrokers
+ *   2. broker subdomain          → https://rehanbrokers.propsora.com (when NEXT_PUBLIC_ROOT_DOMAIN is set)
+ *   3. path on the app domain    → https://propsora.com/rehanbrokers
  */
 export interface BrokerUrlTarget {
   slug: string;
@@ -26,7 +26,7 @@ export function collectionPublicUrl(broker: BrokerUrlTarget, collectionSlug: str
   return `${brokerBaseUrl(broker)}/collections/${collectionSlug}`;
 }
 
-/** Host shown in the UI, e.g. "rehanbrokers.propflow.in". */
+/** Host shown in the UI, e.g. "rehanbrokers.propsora.com". */
 export function brokerDisplayHost(broker: BrokerUrlTarget): string {
   return brokerBaseUrl(broker).replace(/^https?:\/\//, "");
 }

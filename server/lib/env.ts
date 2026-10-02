@@ -26,6 +26,8 @@ const serverEnvSchema = z.object({
   WHATSAPP_BATCH_WINDOW_MS: z.coerce.number().int().min(0).default(15000),
 
   REDIS_URL: z.string().optional(),
+  QUEUE_PREFIX: z.string().regex(/^[\w:-]+$/, "QUEUE_PREFIX may only contain letters, digits, _ - :").optional(),
+  APP_ENV: z.enum(["production", "staging", "development"]).optional(),
 
   STORAGE_DRIVER: z.enum(["local", "s3"]).default("local"),
   STORAGE_LOCAL_DIR: z.string().default(".storage"),

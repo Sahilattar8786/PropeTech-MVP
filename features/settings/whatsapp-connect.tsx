@@ -6,6 +6,7 @@ import { CheckCircle2, Copy, Loader2, Smartphone, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { WhatsAppIcon } from "@/components/shared/whatsapp-icon";
+import { siteConfig } from "@/lib/config/site";
 import { formatPhone } from "@/lib/phone";
 import { buildWhatsAppUrl } from "@/lib/whatsapp-link";
 import { copyText } from "@/features/properties/share-menu";
@@ -66,7 +67,7 @@ export function WhatsAppConnect({ businessNumber, connectCode, senderNumbers }: 
           <li className="flex gap-3">
             <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">1</span>
             <div className="text-sm">
-              <p className="font-medium">Save the PropFlow number in your phone</p>
+              <p className="font-medium">Save the {siteConfig.name} number in your phone</p>
               <p className="mt-1 font-mono text-base">{formatPhone(businessNumber)}</p>
             </div>
           </li>

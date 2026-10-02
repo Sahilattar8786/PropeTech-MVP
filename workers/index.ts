@@ -4,9 +4,10 @@
  * Consumes every BullMQ queue and dispatches to the shared processors.
  */
 import { Worker } from "bullmq";
+import { getDeploymentStage, siteConfig } from "@/lib/config/site";
 import { connectDB } from "@/server/db/connect";
 import { logger } from "@/server/lib/logger";
-import { createRedisConnection } from "@/server/services/queue/bullmq.driver";
+import { createRedisConnection, queuePrefix } from "@/server/services/queue/bullmq.driver";
 import { QUEUE_NAMES, type QueueName } from "@/server/services/queue/jobs";
 import { processors } from "@/server/services/queue/processors";
 
@@ -32,7 +33,7 @@ async function main() {
           const processor = processors[name] as (payload: unknown, meta: { attempt: number; maxAttempts: number }) => Promise<void>;
           await processor(job.data, { attempt: job.attemptsMade + 1, maxAttempts: job.opts.attempts ?? 1 });
         },
-        { connection, concurrency: CONCURRENCY[name] },
+        { connection, concurrency: CONCURRENCY[name], prefix: queuePrefix() },
       ),
   );
 
@@ -40,7 +41,7 @@ async function main() {
     worker.on("failed", (job, error) => logger.warn(`[${worker.name}] job ${job?.id} failed: ${error.message}`));
     worker.on("error", (error) => logger.error(`[${worker.name}] worker error`, error));
   }
-  logger.info(`PropFlow worker running: ${QUEUE_NAMES.join(", ")}`);
+  logger.info(`${siteConfig.name} worker running (${getDeploymentStage()}, prefix "${queuePrefix()}"): ${QUEUE_NAMES.join(", ")}`);
 
   const shutdown = async () => {
     logger.info("Shutting down workers…");

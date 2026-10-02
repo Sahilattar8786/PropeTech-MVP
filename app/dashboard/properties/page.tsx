@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { PropertyCard } from "@/features/properties/property-card";
 import { PropertyFilters } from "@/features/properties/property-filters";
+import { siteConfig } from "@/lib/config/site";
 import { propertyPublicUrl } from "@/lib/urls";
 import { propertyFiltersSchema } from "@/lib/validation/property";
 import { requireTenantContext } from "@/server/auth/session";
@@ -51,7 +52,7 @@ export default async function PropertiesPage({ searchParams }: PageProps<"/dashb
           <EmptyState
             icon={Home}
             title="Add your first property"
-            description="Paste a WhatsApp property message and PropFlow will turn it into a listing — or send it straight to your PropFlow WhatsApp number."
+            description={`Paste a WhatsApp property message and ${siteConfig.name} will turn it into a listing — or send it straight to your ${siteConfig.name} WhatsApp number.`}
             action={
               <>
                 <Button asChild>

@@ -9,6 +9,7 @@ import {
   FinalCta,
   HowItWorksSection,
   ListingPreviewSection,
+  PlatformSection,
   PricingSection,
   ProblemSection,
   SiteFooter,
@@ -32,7 +33,7 @@ export const metadata: Metadata = {
     locale: siteConfig.locale,
   },
   twitter: { card: "summary_large_image", title, description: siteConfig.description },
-  keywords: ["real estate broker software", "WhatsApp property listing", "property listing India", "broker website", "real estate CRM India"],
+  keywords: ["Shopify for real estate", "real estate website builder India", "property website for brokers", "WhatsApp property listing", "broker website", "real estate broker software"],
 };
 
 function StructuredData() {
@@ -74,6 +75,7 @@ export default function LandingPage() {
       <main className="flex-1">
         <Hero />
         <ProblemSection />
+        <PlatformSection />
         <HowItWorksSection />
         <WhatsAppSection />
         <ListingPreviewSection />

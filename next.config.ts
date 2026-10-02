@@ -16,6 +16,11 @@ const securityHeaders = [
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
 ];
 
+// Staging (prop.sahilproject.ink) and other preview deployments must never be indexed —
+// they mirror propsora.com. Same rule as getDeploymentStage() in lib/config/site.ts.
+const deploymentStage = process.env.APP_ENV?.trim() || (process.env.VERCEL_ENV === "preview" ? "staging" : "production");
+if (deploymentStage === "staging") securityHeaders.push({ key: "X-Robots-Tag", value: "noindex, nofollow" });
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   // Dev only: lets the app load through a Cloudflare quick tunnel (needed for WhatsApp webhooks locally).

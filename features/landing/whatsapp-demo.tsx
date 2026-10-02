@@ -2,13 +2,14 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Check, Loader2, MapPin, Sparkles } from "lucide-react";
+import { siteConfig } from "@/lib/config/site";
 import { cn } from "@/lib/utils";
 import { PropertyIllustration } from "@/components/shared/property-illustration";
 import { BrokerMessageBubble, ChatHeader, PhoneFrame } from "./mockups";
 import { processingSteps, sampleListing } from "./content";
 
 /**
- * Main product demonstration: WhatsApp message → PropFlow processing → draft ready.
+ * Main product demonstration: WhatsApp message → Propsora processing → draft ready.
  * Advances step by step once visible; respects reduced-motion (shows the end state).
  */
 const TOTAL = processingSteps.length + 2; // message + steps + draft
@@ -57,14 +58,14 @@ export function WhatsAppDemo() {
         </PhoneFrame>
       </Panel>
 
-      <Panel index="2" title="PropFlow organises it" active={step >= 1}>
+      <Panel index="2" title={`${siteConfig.name} organises it`} active={step >= 1}>
         <div className="rounded-2xl border bg-card p-5 shadow-soft">
           <div className="mb-4 flex items-center gap-2">
             <span className="flex size-8 items-center justify-center rounded-lg bg-brand-soft text-brand">
               <Sparkles className="size-4" />
             </span>
             <div>
-              <p className="text-sm font-semibold">PropFlow</p>
+              <p className="text-sm font-semibold">{siteConfig.name}</p>
               <p className="text-xs text-muted-foreground">{draftReady ? "Done in 8 seconds" : step >= 1 ? "Processing…" : "Waiting for message"}</p>
             </div>
           </div>

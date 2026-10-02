@@ -14,7 +14,7 @@ type LinkProperty = Pick<PropertyDTO, "title" | "location" | "price" | "listingT
  *   ₹1.50 Cr
  *   Property ID: REH-1024
  *   Property Link:
- *   https://rehanbrokers.propflow.in/property/3bhk-whitefield
+ *   https://rehanbrokers.propsora.com/property/3bhk-whitefield
  */
 export function buildEnquiryMessage(
   broker: { contactName: string; businessName: string },

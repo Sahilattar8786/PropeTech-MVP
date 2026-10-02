@@ -9,9 +9,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { cn } from "@/lib/utils";
 
 const NAV = [
+  { href: "#features", label: "Features" },
   { href: "#how-it-works", label: "How it works" },
   { href: "#whatsapp", label: "WhatsApp" },
-  { href: "#website", label: "Broker website" },
   { href: "#pricing", label: "Pricing" },
 ];
 
