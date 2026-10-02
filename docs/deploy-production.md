@@ -99,7 +99,14 @@ propsora.com uses **Vercel's nameservers** (see *Moving production to propsora.c
 
 ✅ `https://propsora.com/api/health` returns `{"status":"ok","db":"up"}`, and you can register an account and upload a photo.
 
-> With `NEXT_PUBLIC_ROOT_DOMAIN=propsora.com`, broker sites live at `<broker>.propsora.com`, which needs `*.propsora.com` on Vercel (Vercel nameservers). Without it they live at `propsora.com/<broker>`. Brokers who want their own domain use [custom domains](custom-domains.md).
+> **Broker subdomains.** With `NEXT_PUBLIC_ROOT_DOMAIN` empty, broker sites live at `propsora.com/<broker>`. To serve them at `<broker>.propsora.com` (the production setup):
+> 1. Vercel → project → **Settings → Domains** → add `*.propsora.com`. Wildcard domains need the domain on Vercel's nameservers, so Vercel can issue the wildcard SSL certificate.
+> 2. Set `NEXT_PUBLIC_ROOT_DOMAIN` to the **hostname only**, `propsora.com`, not `https://propsora.com`.
+> 3. Redeploy. Check that `https://<broker>.propsora.com/` shows the broker's site and that share links use the subdomain. Old `propsora.com/<broker>` links keep working.
+>
+> Do step 1 before step 2. Once the variable is set, every share link switches to subdomains.
+>
+> Brokers who want their own domain use [custom domains](custom-domains.md).
 
 ## 6. Worker (Railway)
 The worker processes WhatsApp photos, runs the AI and sends WhatsApp replies. Vercel can't run long-lived processes, so it runs on Railway.
