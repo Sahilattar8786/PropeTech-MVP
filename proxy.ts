@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getRootDomain } from "@/lib/config/site";
 
 /**
  * 1. Broker sites: `{slug}.{ROOT_DOMAIN}` and verified custom domains are rewritten
@@ -9,7 +10,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/+$/, "");
 const APP_HOST = new URL(APP_URL).host.toLowerCase();
-const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN?.trim().toLowerCase() || null;
+const ROOT_DOMAIN = getRootDomain();
 const RESERVED_SUBDOMAINS = new Set(["www", "app", "api", "admin", "dashboard", "mail", "sites", "static", "assets"]);
 const PRIVATE_PREFIXES = ["/dashboard", "/onboarding", "/admin"];
 const SESSION_COOKIES = ["authjs.session-token", "__Secure-authjs.session-token"];

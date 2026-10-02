@@ -31,10 +31,16 @@ export function getAppUrl(): string {
 /**
  * Root domain used for broker subdomains, e.g. `propflow.in` → `rehanbrokers.propflow.in`.
  * When unset, broker sites are served path-based: `{APP_URL}/{brokerSlug}`.
+ * Only the host is used (port kept, e.g. `localhost:3000`), so a pasted `https://propflow.in/`
+ * or `*.propflow.in` still works.
  */
 export function getRootDomain(): string | null {
-  const value = process.env.NEXT_PUBLIC_ROOT_DOMAIN?.trim();
-  return value ? value.toLowerCase() : null;
+  const value = process.env.NEXT_PUBLIC_ROOT_DOMAIN?.trim()
+    .toLowerCase()
+    .replace(/^[a-z][a-z0-9+.-]*:\/\//, "")
+    .replace(/^\*?\./, "")
+    .replace(/[/?#].*$/, "");
+  return value || null;
 }
 
 export function getAppProtocol(): "http" | "https" {
