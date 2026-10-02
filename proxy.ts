@@ -55,6 +55,12 @@ export async function proxy(request: NextRequest) {
       const target = `/${brokerSlug}${pathname === "/" ? "" : pathname}${search}`;
       return NextResponse.rewrite(new URL(target, request.url));
     }
+    // Path-style links on the broker's own host (`/{slug}`, `/{slug}/property/*`) stay on the
+    // broker site at the clean URL instead of bouncing to the main app.
+    if (pathname === `/${brokerSlug}` || pathname.startsWith(`/${brokerSlug}/`)) {
+      const clean = pathname.slice(brokerSlug.length + 1) || "/";
+      return NextResponse.redirect(new URL(`${clean}${search}`, request.url));
+    }
     if (pathname !== "/opengraph-image" && !pathname.startsWith("/icon")) {
       return NextResponse.redirect(new URL(`${pathname}${search}`, APP_URL));
     }

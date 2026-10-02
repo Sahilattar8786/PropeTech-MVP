@@ -45,6 +45,14 @@ describe("broker subdomains", () => {
     );
     expect(rewriteOf(await at("https://markestates.prop.sahilproject.ink/collections/baner"))).toBe("https://markestates.prop.sahilproject.ink/markestates/collections/baner");
 
+    // Path-style links on the broker's own subdomain stay on the broker site.
+    const redirectOf = async (url: string) => (await at(url)).headers.get("location");
+    expect(await redirectOf("https://markestates.prop.sahilproject.ink/markestates")).toBe("https://markestates.prop.sahilproject.ink/");
+    expect(await redirectOf("https://markestates.prop.sahilproject.ink/markestates/")).toBe("https://markestates.prop.sahilproject.ink/");
+    expect(await redirectOf("https://markestates.prop.sahilproject.ink/markestates/property/3bhk-baner?ref=wa")).toBe(
+      "https://markestates.prop.sahilproject.ink/property/3bhk-baner?ref=wa",
+    );
+
     // Dashboard and other app paths go back to the main site.
     const dashboard = await at("https://markestates.prop.sahilproject.ink/dashboard");
     expect(dashboard.headers.get("location")).toBe("https://prop.sahilproject.ink/dashboard");
