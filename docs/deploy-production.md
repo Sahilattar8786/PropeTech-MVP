@@ -63,7 +63,14 @@ Do the steps in order. Each ends with a check.
 
 ✅ `https://yourdomain.com/api/health` returns `{"status":"ok","db":"up"}`, and you can register an account and upload a photo.
 
-> Leave `NEXT_PUBLIC_ROOT_DOMAIN` empty for now. Broker sites live at `yourdomain.com/<broker>`. Wildcard broker subdomains on Vercel require moving DNS to Vercel's nameservers; brokers who want their own domain use [custom domains](custom-domains.md).
+> **Broker subdomains (optional).** With `NEXT_PUBLIC_ROOT_DOMAIN` empty, broker sites live at `yourdomain.com/<broker>`. To serve them at `<broker>.yourdomain.com`:
+> 1. Vercel → project → **Settings → Domains** → add `*.yourdomain.com`. Wildcard domains need the domain on Vercel's nameservers, so Vercel can issue the wildcard SSL certificate.
+> 2. Set `NEXT_PUBLIC_ROOT_DOMAIN` to the **hostname only**, e.g. `yourdomain.com`, not `https://yourdomain.com`.
+> 3. Redeploy. Check that `https://<broker>.yourdomain.com/` shows the broker's site and that share links use the subdomain. Old `yourdomain.com/<broker>` links keep working.
+>
+> Do step 1 before step 2. Once the variable is set, every share link switches to subdomains.
+>
+> Brokers who want their own domain use [custom domains](custom-domains.md).
 
 ## 6. Worker (Railway)
 The worker processes WhatsApp photos, runs the AI and sends WhatsApp replies. Vercel can't run long-lived processes, so it runs on Railway.
