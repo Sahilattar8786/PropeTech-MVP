@@ -9,6 +9,7 @@ import { formToPatch, propertyToFormValues, publishBlockers } from "@/lib/valida
 import { hubSignature, signatureMatches, verifySubscription } from "@/server/services/whatsapp/provider";
 import { parseWebhookPayload } from "@/server/services/whatsapp/whatsapp-webhook.service";
 import { propertySlugBase } from "@/server/services/ai/copywriter";
+import { publishedMessage } from "@/server/services/whatsapp/whatsapp-template.service";
 
 describe("WhatsApp CTA (spec §26)", () => {
   it("builds the enquiry message and wa.me URL", () => {
@@ -140,5 +141,21 @@ describe("Deployment stage (production = propsora.com, staging = prop.sahilproje
     withEnv({ APP_ENV: undefined, VERCEL_ENV: "production" }, () => expect(getDeploymentStage()).toBe("production"));
     withEnv({ APP_ENV: undefined, VERCEL_ENV: "preview" }, () => expect(getDeploymentStage()).toBe("staging"));
     withEnv({ APP_ENV: "bogus", VERCEL_ENV: "preview" }, () => expect(getDeploymentStage()).toBe("staging"));
+  });
+});
+
+describe("Published-listing WhatsApp message", () => {
+  it("sends the public link with a View Listing button", () => {
+    const message = publishedMessage(
+      { id: "x", propertyId: "REH-1024", title: "Premium 3 BHK Apartment", propertyType: "apartment", bedrooms: 3, location: { locality: "Whitefield", city: "Bangalore" }, price: { amount: 15000000, currency: "INR" } } as never,
+      "https://rehanbrokers.propsora.com/property/3bhk-whitefield",
+    );
+    expect(message.type).toBe("cta_url");
+    if (message.type !== "cta_url") return;
+    expect(message.buttonText).toBe("View Listing");
+    expect(message.url).toBe("https://rehanbrokers.propsora.com/property/3bhk-whitefield");
+    expect(message.body).toContain("Property Published");
+    expect(message.body).toContain("Property ID: REH-1024");
+    expect(message.body).toContain("https://rehanbrokers.propsora.com/property/3bhk-whitefield");
   });
 });

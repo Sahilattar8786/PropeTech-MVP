@@ -35,6 +35,21 @@ export function draftReadyTemplate(property: PropertyDTO, propertyDbId: string):
   };
 }
 
+export function publishedMessage(property: PropertyDTO, publicUrl: string): OutboundMessage {
+  const lines = [
+    "🎉 *Property Published*",
+    "",
+    configurationLabel(property),
+    locationLabel(property.location),
+    property.price ? priceLabel(property) : null,
+    property.propertyId ? `Property ID: ${property.propertyId}` : null,
+    "",
+    "Your listing is live. Share this link with customers:",
+    publicUrl,
+  ].filter((l): l is string => l !== null);
+  return { type: "cta_url", body: lines.join("\n"), buttonText: "View Listing", url: publicUrl };
+}
+
 export function processingFailedMessage(reviewUrl: string): OutboundMessage {
   return {
     type: "cta_url",

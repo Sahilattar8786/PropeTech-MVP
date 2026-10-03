@@ -11,6 +11,7 @@ import { Broker, Collection, isObjectId, Lead, Media, ObjectId, Property, Tenant
 import { propertySlugBase } from "@/server/services/ai/copywriter";
 import { trackEvent } from "@/server/services/analytics/track";
 import { audit } from "@/server/services/audit/audit.service";
+import { notifyPublished } from "@/server/services/notifications/notification.service";
 import { enqueue } from "@/server/services/queue/queue";
 import { storage } from "@/server/services/storage/storage";
 import { assertCanCreateProperty } from "@/server/services/subscriptions/subscription.service";
@@ -251,7 +252,10 @@ export async function publishProperty(ctx: TenantContext, id: string, values?: P
 
   trackEvent("property_published", { tenantId: ctx.tenantId, propertyId: id, userId: ctx.userId });
   await audit({ tenantId: ctx.tenantId, userId: ctx.userId }, "property.published", { type: "property", id }, { propertyId: doc.propertyId });
-  return { property: toPropertyDTO(doc), publicUrl: propertyPublicUrl(broker, doc.slug), brokerSlug: broker.slug };
+  const dto = toPropertyDTO(doc);
+  const publicUrl = propertyPublicUrl(broker, doc.slug);
+  await notifyPublished(ctx.tenantId, dto, publicUrl, doc.source?.conversationId ? String(doc.source.conversationId) : undefined);
+  return { property: dto, publicUrl, brokerSlug: broker.slug };
 }
 
 export async function changePropertyStatus(ctx: TenantContext, id: string, status: PropertyStatus) {
